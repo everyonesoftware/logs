@@ -36,6 +36,12 @@ async function expectEvents(page, expected) {
   assert.deepEqual(await row(page).evaluateAll(rows => rows.map(r => r.dataset.event)), expected.map(e => e.id));
 }
 
+test('the workspace and browser tab are branded Logs', async t => {
+  const page = await visit(t);
+  assert.equal(await page.title(), 'Logs — Investigate');
+  assert.equal(await page.locator('header .brand').innerText(), 'Logs');
+});
+
 test('investigation lists real fixture events newest-first and intersects search and filters', async t => {
   const page = await visit(t);
   assert.equal(await page.getByRole('heading', { name: 'Investigate' }).count(), 1);
@@ -175,7 +181,7 @@ test('server exposes only explicitly mapped read-only assets', async () => {
   assert.deepEqual(await fixture.json(), sample);
   assert.match(fixture.headers.get('content-type'), /application\/json/);
   assert.equal((await fetch(`${url}/styles.css`, { method: 'HEAD' })).status, 200);
-  for (const path of ['/mockups/Signal.html', '/server.cjs', '/contracts/sample.json', '/ingest']) {
+  for (const path of ['/mockups/Logs.html', '/server.cjs', '/contracts/sample.json', '/ingest']) {
     assert.equal((await fetch(url + path)).status, 404);
   }
   const post = await fetch(`${url}/sample.json`, { method: 'POST' });

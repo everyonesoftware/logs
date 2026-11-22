@@ -13,7 +13,7 @@ using Windows.System;
 using Windows.UI;
 using XamlPath = Microsoft.UI.Xaml.Shapes.Path;
 
-namespace Signal.App;
+namespace Logs.App;
 
 internal sealed class MainWindow : Window
 {
@@ -34,10 +34,10 @@ internal sealed class MainWindow : Window
 
     public MainWindow()
     {
-        using var reader = new StreamReader(typeof(MainWindow).Assembly.GetManifestResourceStream("Signal.Shell.xaml")!);
+        using var reader = new StreamReader(typeof(MainWindow).Assembly.GetManifestResourceStream("Logs.Shell.xaml")!);
         root = (Grid)XamlReader.Load(reader.ReadToEnd());
         Content = root;
-        Title = "Signal";
+        Title = "Logs";
         if (AppWindowTitleBar.IsCustomizationSupported())
         {
             ExtendsContentIntoTitleBar = true;
@@ -230,7 +230,7 @@ internal sealed class MainWindow : Window
         C<StackPanel>("Workspace").Visibility = AsVisibility(!settingsOpen);
         C<Border>("Settings").Visibility = AsVisibility(settingsOpen);
         C<TextBlock>("PageHeading").Text = settingsOpen ? "Settings" : "Investigate";
-        C<TextBlock>("PageCaption").Text = settingsOpen ? "Signal for Windows" : "Search across apps. Check the metric without leaving the results.";
+        C<TextBlock>("PageCaption").Text = settingsOpen ? "Logs for Windows" : "Search across apps. Check the metric without leaving the results.";
         settingsButton.Content = settingsOpen ? "Back" : "Settings";
     }
 

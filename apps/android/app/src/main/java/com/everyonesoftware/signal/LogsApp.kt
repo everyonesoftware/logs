@@ -56,7 +56,7 @@ private val filtersSaver = listSaver<Filters, Any>(
 
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
-fun SignalApp(sample: Sample) {
+fun LogsApp(sample: Sample) {
     var filters by rememberSaveable(stateSaver = filtersSaver) { mutableStateOf(Filters()) }
     var selection by rememberSaveable { mutableStateOf<String?>(null) }
     var settings by rememberSaveable { mutableStateOf(false) }
@@ -173,9 +173,9 @@ private fun Mast(settings: Boolean, onAction: () -> Unit) {
                 IconButton(onClick = onAction) { Icon(Icons.AutoMirrored.Filled.ArrowBack, "Back") }
                 Text("Settings", style = MaterialTheme.typography.titleLarge, modifier = Modifier.semantics { heading() })
             } else {
-                Icon(painterResource(R.drawable.ic_signal), null, modifier = Modifier.size(32.dp), tint = Color.Unspecified)
+                Icon(painterResource(R.drawable.ic_logs), null, modifier = Modifier.size(32.dp), tint = Color.Unspecified)
                 Spacer(Modifier.width(9.dp))
-                Text("Signal", Modifier.weight(1f), style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.SemiBold)
+                Text("Logs", Modifier.weight(1f), style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.SemiBold)
                 Text("Sample data", color = Mint, style = MaterialTheme.typography.labelMedium)
                 IconButton(onClick = onAction) { Icon(Icons.Default.Settings, "Settings") }
             }
@@ -252,7 +252,7 @@ private fun Details(event: LogEvent, onClose: () -> Unit) {
 @Composable
 private fun SettingsPage() {
     Column(Modifier.widthIn(max = 720.dp).fillMaxSize().verticalScroll(rememberScrollState()).padding(16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
-        Caption("SIGNAL / UPDATES")
+        Caption("LOGS / UPDATES")
         Text("Current Version: ${BuildConfig.VERSION_NAME}", style = MaterialTheme.typography.titleLarge, modifier = Modifier.semantics { heading() })
         OutlinedButton(onClick = {}, enabled = false) { Text("Check for updates") }
         Text("No update feed is configured for this build.", style = MaterialTheme.typography.bodyMedium, color = Muted)

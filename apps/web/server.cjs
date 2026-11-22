@@ -42,5 +42,5 @@ if (require.main === module) {
   const host = process.env.HOST || '127.0.0.1';
   const port = Number(process.env.PORT || 4173);
   const server = createServer();
-  server.listen(port, host, () => console.log(`Signal listening at http://${host.includes(':') ? `[${host}]` : host}:${server.address().port}`));
+  server.listen(port, host, () => console.log(`Logs listening at http://${host.includes(':') ? `[${host}]` : host}:${server.address().port}`));
 }

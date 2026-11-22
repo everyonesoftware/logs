@@ -4,7 +4,7 @@ using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Markup;
 using Velopack;
 
-namespace Signal.App;
+namespace Logs.App;
 
 internal static class Program
 {
@@ -17,12 +17,12 @@ internal static class Program
         Application.Start(callback =>
         {
             SynchronizationContext.SetSynchronizationContext(new DispatcherQueueSynchronizationContext(DispatcherQueue.GetForCurrentThread()));
-            _ = new SignalApplication();
+            _ = new LogsApplication();
         });
     }
 }
 
-public sealed partial class SignalApplication : Application, IXamlMetadataProvider
+public sealed partial class LogsApplication : Application, IXamlMetadataProvider
 {
     private readonly Microsoft.UI.Xaml.XamlTypeInfo.XamlControlsXamlMetaDataProvider metadata = new();
     private MainWindow? window;

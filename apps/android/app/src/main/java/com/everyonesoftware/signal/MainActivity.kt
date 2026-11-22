@@ -12,7 +12,7 @@ class MainActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge(statusBarStyle = SystemBarStyle.dark(0xff101212.toInt()), navigationBarStyle = SystemBarStyle.dark(0xff101212.toInt()))
         val sample = assets.open("sample.json").bufferedReader().use { decodeSample(it.readText()) }
-        setContent { SignalApp(sample) }
+        setContent { LogsApp(sample) }
     }
 }
 

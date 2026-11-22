@@ -1,4 +1,4 @@
-# Signal for Android
+# Logs for Android
 
 Native Jetpack Compose investigation UI. It reads the shared synthetic fixture at `contracts/sample.json`, packaged as a single asset. This build does not connect to a collector, Tailnet or update feed. The Settings screen displays the installed app version and disables update checks until a feed exists.
 

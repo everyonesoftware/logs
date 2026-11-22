@@ -12,5 +12,5 @@ dependencyResolutionManagement {
         mavenCentral()
     }
 }
-rootProject.name = "Signal"
+rootProject.name = "Logs"
 include(":app")

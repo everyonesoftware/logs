@@ -1,7 +1,7 @@
 using System.Reflection;
 using System.Text.Json;
 
-namespace Signal.App;
+namespace Logs.App;
 
 internal sealed record LogEvent(string Id, TimeOnly Time, string Level, string App, string Message, string Source, string RequestId);
 internal sealed record Metric(string App, string Name, string Unit, TimeOnly PeakTime, TimeOnly WindowStart, TimeOnly WindowEnd, double[] Values);
@@ -9,10 +9,10 @@ internal sealed record Sample(TimeOnly End, LogEvent[] Events, Metric Metric)
 {
     public static Sample Load(Assembly assembly)
     {
-        using var stream = assembly.GetManifestResourceStream("Signal.Sample.json")
-            ?? throw new InvalidOperationException("Signal's bundled sample is missing.");
+        using var stream = assembly.GetManifestResourceStream("Logs.Sample.json")
+            ?? throw new InvalidOperationException("Logs's bundled sample is missing.");
         return JsonSerializer.Deserialize<Sample>(stream, new JsonSerializerOptions(JsonSerializerDefaults.Web))
-            ?? throw new InvalidOperationException("Signal's bundled sample is empty.");
+            ?? throw new InvalidOperationException("Logs's bundled sample is empty.");
     }
 }
 

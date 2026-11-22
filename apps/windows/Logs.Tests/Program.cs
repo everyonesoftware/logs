@@ -1,6 +1,6 @@
 using System.Text.RegularExpressions;
 using System.Xml.Linq;
-using Signal.App;
+using Logs.App;
 
 var model = new Investigation(Sample.Load(typeof(Investigation).Assembly));
 Check("default range and newest-first order", () =>
@@ -68,9 +68,9 @@ Check("incident starts inclusive and ends exclusive", () =>
 });
 Check("native shell names resolve to the declared control types and embed the real fixture", () =>
 {
-    var project = XDocument.Parse(Read("Signal.App.csproj"));
+    var project = XDocument.Parse(Read("Logs.App.csproj"));
     var resources = project.Descendants("EmbeddedResource").ToDictionary(e => (string)e.Attribute("LogicalName")!, e => (string)e.Attribute("Include")!);
-    Require(resources["Signal.Sample.json"] == "../../../contracts/sample.json" && resources["Signal.Shell.xaml"] == "Shell.xaml");
+    Require(resources["Logs.Sample.json"] == "../../../contracts/sample.json" && resources["Logs.Shell.xaml"] == "Shell.xaml");
     var shell = XDocument.Parse(Read("Shell.xaml"));
     var xaml = XNamespace.Get("http://schemas.microsoft.com/winfx/2006/xaml");
     var names = shell.Descendants().Where(e => e.Attribute(xaml + "Name") is not null)

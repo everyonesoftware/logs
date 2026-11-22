@@ -1,16 +1,16 @@
-# Signal for Windows
+# Logs for Windows
 
-Native WinUI 3 implementation of the Logs-first investigation layout in `mockups/Signal.html`. It embeds `contracts/sample.json` and runs offline. The chart shows the one metric the shared fixture defines; the app has no live telemetry, authentication, installer, or update feed. Settings shows the assembly version and that updates are unavailable. Startup handles Velopack lifecycle arguments without automatically applying updates.
+Native WinUI 3 implementation of the Logs-first investigation layout in `mockups/Logs.html`. It embeds `contracts/sample.json` and runs offline. The chart shows the one metric the shared fixture defines; the app has no live telemetry, authentication, installer, or update feed. Settings shows the assembly version and that updates are unavailable. Startup handles Velopack lifecycle arguments without automatically applying updates.
 
 ## Build and run on Windows x64
 
 Use the .NET 10 SDK and Windows SDK build tools. From the repository root in PowerShell:
 
 ```powershell
-dotnet run --project apps/windows/Signal.Tests -c Release
-dotnet publish apps/windows/Signal.App/Signal.App.csproj -c Release -o apps/windows/artifacts/publish
+dotnet run --project apps/windows/Logs.Tests -c Release
+dotnet publish apps/windows/Logs.App/Logs.App.csproj -c Release -o apps/windows/artifacts/publish
 Test-Path apps/windows/artifacts/publish/resources.pri
-& ./apps/windows/artifacts/publish/Signal.exe
+& ./apps/windows/artifacts/publish/Logs.exe
 ```
 
 The default native publish is unpackaged and self-contained. Keep the complete publish directory together. Do not use the Linux compile overrides below for anything you intend to launch or distribute.
@@ -26,8 +26,8 @@ The default native publish is unpackaged and self-contained. Keep the complete p
 
 ```sh
 export DOTNET_SYSTEM_GLOBALIZATION_INVARIANT=1 # only needed if ICU is unavailable
-dotnet run --project apps/windows/Signal.Tests -c Release
-dotnet build apps/windows/Signal.App/Signal.App.csproj -c Release \
+dotnet run --project apps/windows/Logs.Tests -c Release
+dotnet build apps/windows/Logs.App/Logs.App.csproj -c Release \
   -p:OutputType=Library -p:WindowsAppSDKSelfContained=false \
   -p:PrepareForRunDependsOn=CopyFilesToOutputDirectory
 ```

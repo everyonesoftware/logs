@@ -1,4 +1,4 @@
-# Signal
+# Logs
 
 - `apps/web`, `apps/windows`, and `apps/android` own the three real clients. Use native controls on Windows and Android. `mockups/` holds design studies; don't serve them as the app.
 - `contracts/sample.json` is the shared, synthetic UI fixture. Do not add real telemetry, credentials, network permissions for telemetry, accounts, or ingest endpoints to the interface milestone. The fixture is not a production API contract.

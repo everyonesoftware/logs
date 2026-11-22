@@ -1,4 +1,4 @@
-# Signal web
+# Logs web
 
 Run from the repository root:
 

@@ -18,16 +18,16 @@
     <DefineConstants>$(DefineConstants);DISABLE_XAML_GENERATED_MAIN</DefineConstants>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
-    <RootNamespace>Signal.App</RootNamespace>
-    <AssemblyName>Signal</AssemblyName>
+    <RootNamespace>Logs.App</RootNamespace>
+    <AssemblyName>Logs</AssemblyName>
     <Version>0.1.0</Version>
     <PublishTrimmed>false</PublishTrimmed>
   </PropertyGroup>
   <ItemGroup>
     <PackageReference Include="Microsoft.WindowsAppSDK.WinUI" Version="1.8.260803003" />
     <PackageReference Include="Velopack" Version="1.2.161" />
-    <EmbeddedResource Include="Shell.xaml" LogicalName="Signal.Shell.xaml" />
-    <EmbeddedResource Include="../../../contracts/sample.json" LogicalName="Signal.Sample.json" />
+    <EmbeddedResource Include="Shell.xaml" LogicalName="Logs.Shell.xaml" />
+    <EmbeddedResource Include="../../../contracts/sample.json" LogicalName="Logs.Sample.json" />
   </ItemGroup>
   <Target Name="PublishMergedWinUIResources" AfterTargets="Publish" Condition="'$(OS)' == 'Windows_NT'">
     <Error Condition="!Exists('$(ProjectPriFullPath)')" Text="Native Windows publish requires the generated merged WinUI resource index." />
