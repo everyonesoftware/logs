@@ -44,7 +44,9 @@ test('the workspace and browser tab are branded Logs', async t => {
 
 test('investigation lists real fixture events newest-first and intersects search and filters', async t => {
   const page = await visit(t);
-  assert.equal(await page.getByRole('heading', { name: 'Investigate' }).count(), 1);
+  const workspace = page.getByRole('main');
+  assert.doesNotMatch(await workspace.innerText(), /Workspace \/ Investigate|\bInvestigate\b|Compare log events|Focus search|Esc Close event|Sample timeline ends/i);
+  assert.equal(await workspace.getByRole('searchbox').isVisible(), true);
   assert.equal(await page.getByText('Design study').count(), 0);
   assert.equal(await page.getByText('Sample data', { exact: true }).count(), 1);
   const initial = within(30);

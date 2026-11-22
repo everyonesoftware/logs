@@ -8,15 +8,11 @@ button,select{background:var(--panel);border:1px solid var(--line);border-radius
 button:hover,select:hover{background:var(--raised);border-color:#52645a}
 button[aria-pressed=true]{background:var(--mint-bg);color:var(--mint);border-color:#3e594a}
 .mast{display:flex;align-items:center;justify-content:space-between;gap:16px;padding:10px max(22px,calc((100vw - 1320px)/2));border-bottom:1px solid var(--line)}
-.eyebrow{font:11px var(--mono);letter-spacing:.13em;color:var(--muted);text-transform:uppercase}
 .mast{padding-block:13px;background:#131615}
 .brand{display:flex;align-items:center;gap:10px;font-size:17px;font-weight:650}
 .mark{width:30px;height:30px;border-radius:8px;background:var(--mint-bg);color:var(--mint);display:grid;place-items:center}
 .demo{font-size:12px;color:var(--muted);white-space:nowrap}
 .wrap{max-width:1364px;margin:auto;padding:24px 22px 34px}
-.title{display:flex;justify-content:space-between;align-items:end;gap:14px;margin-bottom:16px}
-h1{font-size:32px;line-height:1.1;letter-spacing:-.04em;margin:5px 0 0}
-.sub{color:var(--muted);font-size:13px;margin:0}
 .search{display:flex;align-items:center;gap:10px;background:var(--panel);border:1px solid #3d4a42;border-radius:9px;padding:5px 10px 5px 13px;min-height:47px}
 .search:focus-within{border-color:var(--mint)}
 .search input{flex:1;min-width:0;border:none;background:none;outline:none;font-size:15px}
@@ -68,8 +64,6 @@ kbd,.tag{border:1px solid var(--line);border-radius:4px;background:var(--raised)
 .detail dd{margin:0;overflow-wrap:anywhere}
 .detail pre{white-space:pre-wrap;overflow-wrap:anywhere;background:#101412;padding:10px;border:1px solid var(--line);border-radius:6px;font:11px/1.5 var(--mono);color:var(--mint)}
 .icon-btn{padding:2px 7px}
-.foot{margin-top:12px;color:var(--muted);font:11px var(--mono)}
-.cue{color:var(--mint)}
 [hidden]{display:none!important}
 
 .mast-actions{display:flex;align-items:center;gap:12px}
@@ -83,7 +77,6 @@ dialog h3{margin:0 0 12px;font-size:15px}
 #update-status{color:var(--muted);margin:9px 0 1px}
 @media(max-width:790px){
   .work{grid-template-columns:minmax(0,1fr)}
-  .title{align-items:start;flex-direction:column;gap:5px}
   .wrap{padding:18px 14px}
   .mast{padding-inline:14px}
   .plot{height:120px}

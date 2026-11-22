@@ -44,7 +44,6 @@ function investigate({ end, events, metric }) {
 
   for (const app of [...new Set([...events.map(event => event.app), metric.app])].sort()) $('app').add(new Option(app, app));
   for (const level of ['ERROR', 'WARN', 'INFO']) $('level').add(new Option(level, level));
-  $('sample-end').textContent = `Sample timeline ends at ${clock(endTime)} UTC`;
   $('scope-text').textContent = `Metric window · ${metric.app} · ${clock(windowStart)}–${clock(windowEnd)} UTC`;
   $('metric-app').textContent = metric.app;
   $('metric-label').textContent = `${metric.name} · 1 min buckets`;
