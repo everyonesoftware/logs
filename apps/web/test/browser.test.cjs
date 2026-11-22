@@ -142,6 +142,56 @@ test('event details support keyboard and pointer and return focus on close', asy
   assert.equal(await page.locator('#detail').innerText(), '');
 });
 
+test('desktop scrolls log rows without moving the page, column headings, or timeline', async t => {
+  const page = await visit(t, { viewport: { width: 1360, height: 680 } });
+  const scroller = page.getByRole('region', { name: 'Log entries' });
+  const positions = () => page.evaluate(() => ({
+    viewport: innerHeight,
+    document: document.documentElement.scrollHeight,
+    pageScroll: scrollY,
+    mast: document.querySelector('.mast').getBoundingClientRect().top,
+    search: document.querySelector('.search').getBoundingClientRect().top,
+    toolbar: document.querySelector('.toolbar').getBoundingClientRect().top,
+    columns: document.querySelector('.log-head').getBoundingClientRect().top,
+    timeline: document.querySelector('.metric').getBoundingClientRect().top,
+  }));
+  const before = await positions();
+  assert.equal(before.document, before.viewport);
+  assert.equal(await scroller.evaluate(el => el.scrollHeight > el.clientHeight), true);
+  await scroller.hover();
+  await page.mouse.wheel(0, 2500);
+  await page.waitForFunction(() => {
+    const el = document.querySelector('[aria-label="Log entries"]');
+    return el.scrollTop > 0 && Math.abs(el.scrollHeight - el.clientHeight - el.scrollTop) <= 1;
+  });
+  await page.mouse.wheel(0, 2500);
+  const last = row(page).last();
+  await last.click();
+  assert.equal(await page.getByRole('region', { name: 'Event details' }).isVisible(), true);
+  await page.keyboard.press('Escape');
+  assert.equal(await last.evaluate(el => document.activeElement === el), true);
+  await scroller.focus();
+  await page.keyboard.press('Home');
+  await page.waitForFunction(() => document.querySelector('[aria-label="Log entries"]').scrollTop === 0);
+  assert.deepEqual(await positions(), before);
+});
+
+test('a scoped event has a readable detail pane in a short desktop window', async t => {
+  const page = await visit(t, { viewport: { width: 791, height: 650 } });
+  await page.locator('#jump').click();
+  await row(page).first().click();
+  const detail = page.getByRole('region', { name: 'Event details' });
+  const body = detail.locator('.detail-body');
+  const height = await body.evaluate(el => el.clientHeight);
+  assert.ok(height >= 100, `Expected readable event details, got ${height}px`);
+  assert.equal(await page.evaluate(() => document.documentElement.scrollHeight), 650);
+  await detail.getByText('req-74a3', { exact: true }).scrollIntoViewIfNeeded();
+  assert.equal(await page.evaluate(() => scrollY), 0);
+  await page.keyboard.press('Escape');
+  assert.equal(await page.getByRole('region', { name: 'Metric timeline' }).isVisible(), true);
+  assert.equal(await row(page).first().evaluate(el => document.activeElement === el), true);
+});
+
 test('phone viewport fits the workspace and settings reports no release channel', async t => {
   const page = await visit(t, { viewport: { width: 360, height: 780 }, isMobile: true, hasTouch: true });
   assert.equal(await page.evaluate(() => document.documentElement.scrollWidth), 360);

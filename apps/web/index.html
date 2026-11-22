@@ -26,7 +26,10 @@
       <div class="work">
         <section class="card logs" aria-labelledby="logs-heading">
           <div class="card-head"><h2 id="logs-heading">Logs <span class="tag" id="count" role="status"></span></h2><span class="small mono">Newest first · UTC</span></div>
-          <div class="log-head" aria-hidden="true"><span>Time</span><span>Level</span><span>App</span><span>Message</span></div><div id="rows"></div>
+          <div class="log-scroll" role="region" aria-label="Log entries" tabindex="0">
+            <div class="log-head" aria-hidden="true"><span>Time</span><span>Level</span><span>App</span><span>Message</span></div>
+            <div id="rows"></div>
+          </div>
         </section>
         <div class="side">
           <section class="card metric" aria-labelledby="metric-heading">
