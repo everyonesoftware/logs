@@ -1,0 +1,25 @@
+{
+  "end": "14:42:00",
+  "events": [
+    {"id":"e16","time":"14:41:16","level":"INFO","app":"Services","message":"Collector checkpoint saved","source":"collector","requestId":"ckpt-771"},
+    {"id":"e15","time":"14:39:08","level":"INFO","app":"Storage","message":"Snapshot completed","source":"snapshot","requestId":"snap-521"},
+    {"id":"e14","time":"14:37:45","level":"INFO","app":"Tasks","message":"Sync completed","source":"sync","requestId":"req-a832"},
+    {"id":"e13","time":"14:36:12","level":"INFO","app":"Music","message":"Upstream connection restored","source":"library-api","requestId":"req-74b2"},
+    {"id":"e12","time":"14:34:52","level":"WARN","app":"Music","message":"Retry budget nearly exhausted","source":"library-api","requestId":"req-74a3"},
+    {"id":"e11","time":"14:33:37","level":"ERROR","app":"Music","message":"Library refresh failed: upstream timeout","source":"library-api","requestId":"req-74a2"},
+    {"id":"e10","time":"14:32:48","level":"ERROR","app":"Music","message":"GET /api/library returned 504","source":"http","requestId":"req-74a2"},
+    {"id":"e09","time":"14:32:33","level":"ERROR","app":"Music","message":"Upstream request timed out after 5000 ms","source":"library-api","requestId":"req-74a2"},
+    {"id":"e08","time":"14:32:10","level":"WARN","app":"Music","message":"Retrying upstream request (attempt 2/3)","source":"library-api","requestId":"req-74a2"},
+    {"id":"e07","time":"14:31:54","level":"WARN","app":"Music","message":"Upstream connection pool saturated","source":"library-api","requestId":"req-749f"},
+    {"id":"e06","time":"14:31:20","level":"INFO","app":"Storage","message":"Backup verification started","source":"snapshot","requestId":"snap-521"},
+    {"id":"e05","time":"14:30:09","level":"INFO","app":"Music","message":"Scheduled library refresh started","source":"scheduler","requestId":"req-74a2"},
+    {"id":"e04","time":"14:27:16","level":"WARN","app":"Tasks","message":"Sync delayed; retry scheduled","source":"sync","requestId":"req-a721"},
+    {"id":"e03","time":"14:24:05","level":"INFO","app":"Services","message":"Container inventory refreshed","source":"docker","requestId":"inv-1424"},
+    {"id":"e02","time":"14:18:42","level":"INFO","app":"Music","message":"Library cache warmed","source":"library-api","requestId":"req-7430"},
+    {"id":"e01","time":"14:05:03","level":"INFO","app":"Storage","message":"Retention sweep finished","source":"retention","requestId":"sweep-302"}
+  ],
+  "metric": {
+    "app":"Music", "name":"HTTP error rate", "unit":"%", "peakTime":"14:32", "windowStart":"14:30:00", "windowEnd":"14:35:00",
+    "values":[0.9,0.7,1.0,0.6,1.1,0.9,0.7,1.1,0.9,0.8,1.2,1.0,0.7,1.1,0.8,0.9,1.1,3.6,6.8,9.3,12.4,8.9,6.0,3.3,0.8,1.1,0.6,0.9,0.7,1.1,0.8]
+  }
+}

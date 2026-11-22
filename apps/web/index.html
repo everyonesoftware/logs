@@ -1,0 +1,56 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Signal — Investigate</title>
+  <link rel="stylesheet" href="/styles.css">
+  <script src="/app.js" defer></script>
+</head>
+<body>
+  <header class="mast">
+    <div class="brand"><span class="mark"><svg width="19" height="19" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M2 12h5l3-6 4 12 3-6h5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></span>Signal</div>
+    <div class="mast-actions"><span class="demo">Sample data</span><button id="settings" type="button">Settings</button></div>
+  </header>
+  <main class="wrap">
+    <div class="title"><div><div class="eyebrow">Workspace / Investigate</div><h1>Investigate</h1></div><p class="sub">Search across apps. Compare log events with the metric timeline.</p></div>
+    <p id="load" role="status">Loading sample data…</p>
+    <div id="workspace" hidden>
+      <div class="search"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" aria-hidden="true"><circle cx="10.5" cy="10.5" r="6.5" stroke="currentColor" stroke-width="1.8"/><path d="m16 16 4 4" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg><input id="q" type="search" aria-label="Search logs" placeholder="Search messages, sources, or request IDs" autocomplete="off"><kbd>/</kbd></div>
+      <div class="toolbar">
+        <select id="app" aria-label="Application"><option value="">All apps</option></select>
+        <select id="level" aria-label="Severity"><option value="">All severities</option></select>
+        <button type="button" class="clear" id="reset">Reset filters</button>
+        <select id="range" class="push" aria-label="Time range"><option value="30">Last 30 minutes</option><option value="10">Last 10 minutes</option><option value="60">Last hour</option></select>
+      </div>
+      <div id="scope" class="scope" hidden><span id="scope-text"></span><button type="button" id="unscope">Clear window</button></div>
+      <div class="work">
+        <section class="card logs" aria-labelledby="logs-heading">
+          <div class="card-head"><h2 id="logs-heading">Logs <span class="tag" id="count" role="status"></span></h2><span class="small mono">Newest first · UTC</span></div>
+          <div class="log-head" aria-hidden="true"><span>Time</span><span>Level</span><span>App</span><span>Message</span></div><div id="rows"></div>
+        </section>
+        <div class="side">
+          <section class="card metric" aria-labelledby="metric-heading">
+            <div class="card-head"><h2 id="metric-heading">Metric timeline</h2><span class="small" id="metric-app"></span></div>
+            <div class="metric-body">
+              <div class="metric-top"><div><div class="small" id="metric-label"></div><div id="value" class="value"></div></div><span id="peak-label" class="peak"></span></div>
+              <div class="plot"><svg viewBox="0 0 300 140" preserveAspectRatio="none" role="img" id="chart"><path class="grid" d="M0 28H300M0 62H300M0 96H300M0 130H300"/><path class="area" id="area"/><path class="guide" id="guide"/><path class="line" id="line"/></svg><button type="button" id="peak" class="peak-button" hidden>↘</button></div>
+              <div class="axis"><span id="from"></span><span id="mid"></span><span id="to"></span></div>
+              <button type="button" class="jump" id="jump" hidden></button>
+              <p class="small" id="outside" hidden>No incident spike in this window.</p>
+            </div>
+          </section>
+          <section class="card detail" aria-labelledby="detail-heading" hidden>
+            <div class="card-head"><h2 id="detail-heading">Event details</h2><button type="button" id="close" class="icon-btn" aria-label="Close event details">×</button></div><div class="detail-body" id="detail"></div>
+          </section>
+        </div>
+      </div>
+      <p class="foot"><span class="cue">/</span> Focus search <span aria-hidden="true">·</span> <span class="cue">Esc</span> Close event <span aria-hidden="true">·</span> <span id="sample-end"></span></p>
+    </div>
+  </main>
+  <dialog id="settings-dialog" aria-labelledby="settings-heading">
+    <div class="card-head"><h2 id="settings-heading">Settings</h2><form method="dialog"><button class="icon-btn" aria-label="Close settings" autofocus>×</button></form></div>
+    <div class="detail-body"><h3 id="current-version">Current Version</h3><button type="button" id="check">Check for updates</button><p id="update-status" role="status"></p></div>
+  </dialog>
+</body>
+</html>
