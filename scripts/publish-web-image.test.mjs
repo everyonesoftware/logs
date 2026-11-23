@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import { test } from 'node:test';
 
 import { readManifest, publishImage } from './publish-web-image.mjs';
-const image = 'ghcr.io/everyonesoftware/logs-web:0.1.11';
+const image = 'ghcr.io/everyonesoftware/logs:0.1.11';
 const config = `sha256:${'a'.repeat(64)}`;
 const digest = `sha256:${'b'.repeat(64)}`;
 
@@ -28,4 +28,11 @@ test('only a confirmed missing registry manifest is treated as absent', async ()
     await assert.rejects(readManifest(image, 'fixture', request(status)), new RegExp(`HTTP ${status}`));
   }
   assert.deepEqual(await readManifest(image, 'fixture', async () => Response.json({ schemaVersion: 2, config: { digest: config } }, { headers: { 'docker-content-digest': digest } })), { config, digest });
+});
+
+test('reads the versioned manifest from the renamed package', async () => {
+  await readManifest(image, 'fixture', async url => {
+    assert.equal(url, 'https://ghcr.io/v2/everyonesoftware/logs/manifests/0.1.11');
+    return Response.json({ errors: [{ code: 'MANIFEST_UNKNOWN' }] }, { status: 404 });
+  });
 });

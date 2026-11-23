@@ -7,7 +7,7 @@ import { inspect } from './release.mjs';
 
 const host = 'ghcr.io';
 const digestPattern = /^sha256:[a-f0-9]{64}$/;
-const imagePattern = /^ghcr\.io\/([a-z0-9_.-]+\/[a-z0-9_.-]+-web):(0\.1\.[1-9]\d{0,8})$/;
+const imagePattern = /^ghcr\.io\/([a-z0-9_.-]+\/logs):(0\.1\.[1-9]\d{0,8})$/;
 const timeout = () => AbortSignal.timeout(30_000);
 function requireThat(value, message) { if (!value) throw new Error(message); }
 
@@ -45,7 +45,7 @@ export async function publishImage({ image, config, read, push }) {
 async function main(env) {
   const { VERSION: version, GITHUB_SHA: source, GITHUB_REPOSITORY: repo, GITHUB_ACTOR: actor, GH_TOKEN: password } = env;
   requireThat(env.GITHUB_ACTIONS === 'true' && env.GITHUB_REF === 'refs/heads/main' && ['push', 'workflow_dispatch'].includes(env.GITHUB_EVENT_NAME) && env.LOGS_PUBLISH_RELEASES === 'true', 'Only the enabled main release job may publish images');
-  const image = `${host}/${repo?.toLowerCase()}-web:${version}`;
+  const image = `${host}/${repo?.toLowerCase()}:${version}`;
   const match = imagePattern.exec(image);
   requireThat(match && actor && password, 'Missing Web registry publication configuration');
   const directory = join('dist', 'web');

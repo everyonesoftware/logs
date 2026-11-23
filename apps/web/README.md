@@ -10,7 +10,7 @@ Open `http://127.0.0.1:4173`. Change the port with `PORT` if needed. No npm inst
 
 ## Run the Docker image
 
-From the repository root, run `docker compose --env-file .env.example up -d` to pull and start the versioned image from GitHub Container Registry. Set `LOGS_VERSION` in `.env.example` to the tag you want. Open `http://127.0.0.1:4173`.
+From the repository root, run `docker compose --env-file .env.example up -d` to pull and start the versioned image from GitHub Container Registry. The example pins a tag from before the rename. To use a published tag from `ghcr.io/everyonesoftware/logs`, set `LOGS_VERSION` to that tag and remove the `LOGS_IMAGE` override in `.env.example`. Open `http://127.0.0.1:4173`.
 
 ### Run from an archive instead
 

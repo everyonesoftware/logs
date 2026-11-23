@@ -1,5 +1,5 @@
 services:
   web:
-    image: ghcr.io/everyonesoftware/logs-web:${LOGS_VERSION:?set LOGS_VERSION}
+    image: ${LOGS_IMAGE:-ghcr.io/everyonesoftware/logs}:${LOGS_VERSION:?set LOGS_VERSION}
     ports:
       - "127.0.0.1:4173:4173"
