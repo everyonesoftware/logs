@@ -84,6 +84,15 @@ Check("native shell names resolve to the declared control types and embed the re
     }
     Require(shell.Root?.Attribute(xaml + "Class") is null && !shell.Descendants().Any(e => e.Name.LocalName == "WebView2"));
 });
+Check("shell-local background is resolved by a child after the runtime dictionary loads", () =>
+{
+    var root = XDocument.Parse(Read("Shell.xaml")).Root!;
+    const string background = "{ThemeResource LogsBackground}";
+    Require(root.Attribute("Background")?.Value != background);
+    Require(root.Elements(root.Name.Namespace + "Border").Any(e =>
+        e.Attribute("Background")?.Value == background && e.Attribute("Grid.RowSpan")?.Value == "2" &&
+        e.Attribute("IsHitTestVisible")?.Value == "False"));
+});
 
 static string Read(string name)
 {
