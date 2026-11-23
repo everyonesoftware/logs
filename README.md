@@ -2,13 +2,17 @@
 
 Logs is a workspace for searching application logs and comparing them with metrics. The first milestone runs on synthetic local data: it does not collect telemetry, connect to a Tailnet backend, or authenticate users.
 
+<!-- current-downloads:start -->
 ## Current downloads
 
-| Platform | Availability |
-| --- | --- |
-| Web | [Run locally](apps/web/README.md); no production deployment |
-| Windows | [Build and run on Windows x64](apps/windows/README.md); no published installer or update feed |
-| Android | [Build and install a debug APK](apps/android/README.md); no published APK or update feed |
+| Platform | Version | Download | Status |
+| --- | --- | --- | --- |
+| Android | — | — | Not published |
+| Windows x64 | — | — | Not published |
+| Web | — | [Run locally](https://github.com/everyonesoftware/logs/blob/main/apps/web/README.md) | No production deployment |
+<!-- current-downloads:end -->
+
+See [release setup and verification](docs/RELEASING.md) for the CI pipeline and first publication.
 
 ## First investigation
 

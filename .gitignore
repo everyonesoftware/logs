@@ -5,6 +5,7 @@ build/
 bin/
 obj/
 artifacts/
+/dist/
 TestResults/
 playwright-report/
 test-results/
