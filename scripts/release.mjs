@@ -39,6 +39,7 @@ function relation(cwd, a, b) {
 }
 function owners(path) {
   if (path === '.dockerignore') return ['web'];
+  if (path === 'docker-compose.yml' || path === '.env.example') return []; // Examples consume an already-built image.
   if (['README.md', 'AGENTS.md', 'scripts/release.mjs', 'scripts/release.test.mjs', 'scripts/publisher.test.mjs', 'scripts/workflow.test.mjs'].includes(path) || path.startsWith('docs/')) return [];
   if (path.startsWith('mockups/')) return [];
   for (const platform of platforms) {

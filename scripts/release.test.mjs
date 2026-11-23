@@ -36,6 +36,9 @@ test('real Git detects pending Android work after a docs push and both sides of 
   const rename = commit('Move across platforms');
   for (const platform of ['android', 'windows']) assert.equal(tooling.affected(cwd, platform, docs, rename), true);
   assert.equal(tooling.affected(cwd, 'web', docs, rename), false);
+  for (const path of ['docker-compose.yml', '.env.example']) writeFileSync(join(cwd, path), 'deployment example');
+  const examples = commit('Add root Compose examples');
+  for (const platform of ['android', 'windows', 'web']) assert.equal(tooling.affected(cwd, platform, rename, examples), false, platform);
 });
 
 test('staging binds a package and checksum to the exact source/version; modified bytes fail validation', t => {

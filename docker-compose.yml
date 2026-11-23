@@ -1,0 +1,6 @@
+services:
+  web:
+    image: logs-web:${LOGS_VERSION:?set LOGS_VERSION}
+    pull_policy: never
+    ports:
+      - "127.0.0.1:4173:4173"

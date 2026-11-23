@@ -24,6 +24,8 @@ docker run --rm -p 127.0.0.1:4173:4173 "logs-web:$version"
 
 Open `http://127.0.0.1:4173`. The host binding above is local only. The image does not need volumes, secrets, or a backend. It serves synthetic sample data, has no authentication, and does not update itself. To upgrade, load a newer archive and recreate the container with its versioned tag.
 
+For Compose, load the archive as above, then from the repository root run `docker compose --env-file .env.example up -d` instead of `docker run`. Set `LOGS_VERSION` in `.env.example` to match the loaded tag if needed.
+
 To build the image yourself, run `docker build -f apps/web/Dockerfile -t logs-web:local .` from the repository root, then run the same `docker run` command with `logs-web:local`.
 
 ## Browser verification
