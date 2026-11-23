@@ -103,12 +103,16 @@ test('a web-only release publishes and verifies the image without changing the n
   const archive = `logs-web-${version}-linux-amd64.tar.gz`;
   writeFileSync(join(directory, archive), 'fixture image');
   stage(directory, 'web', version, source);
-  publish(cwd, remote, source, version, 'web');
+  assert.equal(publish(cwd, remote, source, version, 'web'), true);
   assert.deepEqual(events, ['tag', 'draft', 'upload', 'promote', 'readme']);
   assert.deepEqual(files.map(file => file.name), [archive, `${archive}.sha256`, 'logs-web-release.json', 'latest-versions.json']);
   assert.deepEqual(JSON.parse(files.at(-1).bytes), { schema: 1, android: null, windows: null });
   assert.ok(state.readme().includes(`/releases/download/v${version}/${archive}`));
-  publish(cwd, remote, source, version, 'maintenance');
+  assert.equal(publish(cwd, remote, source, version, 'web'), true);
+  writeFileSync(join(directory, archive), 'not the published image');
+  assert.throws(() => publish(cwd, remote, source, version, 'web'), /Changed artifact bytes/);
+  rmSync(directory, { recursive: true });
+  assert.equal(publish(cwd, remote, source, version, 'maintenance'), false);
   assert.deepEqual(events, ['tag', 'draft', 'upload', 'promote', 'readme']);
   files.find(file => file.name === archive).digest = `sha256:${'0'.repeat(64)}`;
   assert.throws(() => publish(cwd, remote, source, version, 'maintenance'), /Wrong remote digest/);

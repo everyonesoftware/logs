@@ -39,6 +39,7 @@ function relation(cwd, a, b) {
 }
 function owners(path) {
   if (path === '.dockerignore') return ['web'];
+  if (path === 'scripts/publish-web-image.mjs' || path === 'scripts/publish-web-image.test.mjs') return [];
   if (path === 'docker-compose.yml' || path === '.env.example') return []; // Examples consume an already-built image.
   if (['README.md', 'AGENTS.md', 'scripts/release.mjs', 'scripts/release.test.mjs', 'scripts/publisher.test.mjs', 'scripts/workflow.test.mjs'].includes(path) || path.startsWith('docs/')) return [];
   if (path.startsWith('mockups/')) return [];
@@ -329,6 +330,13 @@ export function publish(cwd, remote, source, version, target = 'auto', androidSi
     requireThat(latest.id === draft.id && latest.tag_name === tag && !latest.draft && !latest.prerelease && latest.body === body && remote.tagSource(tag) === source, `Release readback mismatch: ${tag}`);
     console.log(`Published Logs ${version} from ${source}`);
   }
+  const webDirectory = join(cwd, 'dist', 'web');
+  const webRegistry = !older && latest?.tag_name === tag && tags.web === tag && existsSync(webDirectory);
+  if (webRegistry) {
+    const manifest = inspect(webDirectory, 'web', version, source);
+    const remoteAssets = inventory(remote.pages(`releases/${latest.id}/assets?per_page=100`));
+    checkAsset(remote, remoteAssets.get(manifest.files[0].name), manifest.files[0]);
+  }
   if (latest) {
     const table = downloads(remote.repo, tags);
     refreshRelease(remote, latest, table);
@@ -336,6 +344,7 @@ export function publish(cwd, remote, source, version, target = 'auto', androidSi
   } else {
     console.log('No published Logs versions to refresh');
   }
+  return webRegistry;
 }
 
 function main(args, env, cwd) {
@@ -354,7 +363,8 @@ function main(args, env, cwd) {
   if (command === 'preview') console.log(downloads(remote.repo, tagsFor(publications(cwd, remote).current)));
   if (command === 'publish') {
     requireThat(env.GITHUB_ACTIONS === 'true' && env.GITHUB_REF === 'refs/heads/main' && ['push', 'workflow_dispatch'].includes(env.GITHUB_EVENT_NAME) && env.LOGS_PUBLISH_RELEASES === 'true', 'Only the enabled main release job may publish');
-    publish(cwd, remote, source, version, env.TARGET_COMPONENT, env.ANDROID_SIGNING_MISSING === 'true');
+    const webRegistry = publish(cwd, remote, source, version, env.TARGET_COMPONENT, env.ANDROID_SIGNING_MISSING === 'true');
+    if (env.GITHUB_OUTPUT) appendFileSync(env.GITHUB_OUTPUT, `web_registry=${webRegistry}\n`);
   }
 }
 if (process.argv[1] && pathToFileURL(resolve(process.argv[1])).href === import.meta.url) {

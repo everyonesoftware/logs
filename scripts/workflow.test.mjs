@@ -174,7 +174,7 @@ test('Web readiness retries a TCP reset while the container starts', async t => 
 test('release is opt-in, serialized, and blocks failed, cancelled, or unexpectedly skipped selected jobs', () => {
   const { release } = workflow().jobs;
   assert.deepEqual(release.needs, ['validate', 'web', 'android', 'windows']);
-  assert.deepEqual(release.permissions, { contents: 'write', actions: 'read' });
+  assert.deepEqual(release.permissions, { contents: 'write', actions: 'read', packages: 'write' });
   assert.deepEqual(release.concurrency, { group: 'logs-release-publication', 'cancel-in-progress': false, queue: 'max' });
   assert.equal(action(release, 'actions/checkout').with['fetch-depth'], 0);
   const expected = ['!cancelled()', trustedMain, "vars.LOGS_PUBLISH_RELEASES == 'true'", "needs.validate.result == 'success'"];
@@ -185,6 +185,11 @@ test('release is opt-in, serialized, and blocks failed, cancelled, or unexpected
   assert.equal(release.env?.LOGS_PUBLISH_RELEASES, '${{ vars.LOGS_PUBLISH_RELEASES }}');
   assert.equal(release.env?.TARGET_COMPONENT, targetComponent);
   assert.equal(command(release, 'node scripts/release.mjs publish').if, undefined, 'publisher must run to repair tables even with no artifacts');
+  const publisher = command(release, 'node scripts/release.mjs publish');
+  const registry = command(release, 'node scripts/publish-web-image.mjs');
+  assert.ok(release.steps.indexOf(publisher) < release.steps.indexOf(registry));
+  assert.equal(registry.if, `steps.${publisher.id}.outputs.web_registry == 'true'`);
+  assert.equal(registry.env.GH_TOKEN, '${{ github.token }}');
 });
 
 test('publication restores exact-source artifacts from the same run and rejects digest mismatch', () => {
