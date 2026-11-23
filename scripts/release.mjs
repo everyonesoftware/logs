@@ -331,10 +331,12 @@ export function publish(cwd, remote, source, version, target = 'auto', androidSi
     console.log(`Published Logs ${version} from ${source}`);
   }
   const webDirectory = join(cwd, 'dist', 'web');
-  const webRegistry = !older && latest?.tag_name === tag && tags.web === tag && existsSync(webDirectory);
+  // A newer native-only release does not supersede the current Web image.
+  const webRelease = latest?.tag_name === tag ? latest : state.stable.find(release => release.tag_name === tag);
+  const webRegistry = webRelease && tags.web === tag && existsSync(webDirectory);
   if (webRegistry) {
     const manifest = inspect(webDirectory, 'web', version, source);
-    const remoteAssets = inventory(remote.pages(`releases/${latest.id}/assets?per_page=100`));
+    const remoteAssets = inventory(remote.pages(`releases/${webRelease.id}/assets?per_page=100`));
     checkAsset(remote, remoteAssets.get(manifest.files[0].name), manifest.files[0]);
   }
   if (latest) {
@@ -344,7 +346,10 @@ export function publish(cwd, remote, source, version, target = 'auto', androidSi
   } else {
     console.log('No published Logs versions to refresh');
   }
-  return webRegistry;
+  return {
+    registryVersion: webRegistry ? version : target === 'maintenance' ? tags.web?.slice(1) : undefined,
+    reuseRegistryImage: !webRegistry,
+  };
 }
 
 function main(args, env, cwd) {
@@ -363,8 +368,8 @@ function main(args, env, cwd) {
   if (command === 'preview') console.log(downloads(remote.repo, tagsFor(publications(cwd, remote).current)));
   if (command === 'publish') {
     requireThat(env.GITHUB_ACTIONS === 'true' && env.GITHUB_REF === 'refs/heads/main' && ['push', 'workflow_dispatch'].includes(env.GITHUB_EVENT_NAME) && env.LOGS_PUBLISH_RELEASES === 'true', 'Only the enabled main release job may publish');
-    const webRegistry = publish(cwd, remote, source, version, env.TARGET_COMPONENT, env.ANDROID_SIGNING_MISSING === 'true');
-    if (env.GITHUB_OUTPUT) appendFileSync(env.GITHUB_OUTPUT, `web_registry=${webRegistry}\n`);
+    const { registryVersion, reuseRegistryImage } = publish(cwd, remote, source, version, env.TARGET_COMPONENT, env.ANDROID_SIGNING_MISSING === 'true');
+    if (env.GITHUB_OUTPUT) appendFileSync(env.GITHUB_OUTPUT, `web_registry_version=${registryVersion ?? ''}\nweb_registry_reuse=${reuseRegistryImage}\n`);
   }
 }
 if (process.argv[1] && pathToFileURL(resolve(process.argv[1])).href === import.meta.url) {

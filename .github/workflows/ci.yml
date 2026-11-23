@@ -347,8 +347,9 @@ jobs:
           ANDROID_SIGNING_MISSING: ${{ needs.android.outputs.signing_missing }}
         run: node scripts/release.mjs publish
       - name: Publish the verified Web image to GitHub Container Registry
-        if: steps.publish.outputs.web_registry == 'true'
+        if: steps.publish.outputs.web_registry_version != ''
         env:
           GH_TOKEN: ${{ github.token }}
-          VERSION: ${{ needs.validate.outputs.version }}
+          VERSION: ${{ steps.publish.outputs.web_registry_version }}
+          WEB_REGISTRY_REUSE: ${{ steps.publish.outputs.web_registry_reuse }}
         run: node scripts/publish-web-image.mjs

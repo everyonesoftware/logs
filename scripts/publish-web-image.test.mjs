@@ -1,7 +1,8 @@
 import assert from 'node:assert/strict';
+import { createHash } from 'node:crypto';
 import { test } from 'node:test';
 
-import { readManifest, publishImage } from './publish-web-image.mjs';
+import { readManifest, publishImage, promoteLatest } from './publish-web-image.mjs';
 const image = 'ghcr.io/everyonesoftware/logs:0.1.11';
 const config = `sha256:${'a'.repeat(64)}`;
 const digest = `sha256:${'b'.repeat(64)}`;
@@ -35,4 +36,40 @@ test('reads the versioned manifest from the renamed package', async () => {
     assert.equal(url, 'https://ghcr.io/v2/everyonesoftware/logs/manifests/0.1.11');
     return Response.json({ errors: [{ code: 'MANIFEST_UNKNOWN' }] }, { status: 404 });
   });
+});
+
+test('reads the latest alias from the same package', async () => {
+  await readManifest('ghcr.io/everyonesoftware/logs:latest', 'fixture', async url => {
+    assert.equal(url, 'https://ghcr.io/v2/everyonesoftware/logs/manifests/latest');
+    return Response.json({ errors: [{ code: 'MANIFEST_UNKNOWN' }] }, { status: 404 });
+  });
+});
+
+test('promotion copies the exact versioned manifest once and verifies the alias', async () => {
+  const bytes = Buffer.from(JSON.stringify({ schemaVersion: 2, config: { digest: config } }, null, 2));
+  const expected = `sha256:${createHash('sha256').update(bytes).digest('hex')}`;
+  const mediaType = 'application/vnd.oci.image.manifest.v1+json';
+  const manifest = () => new Response(bytes, { headers: { 'Content-Type': mediaType, 'Docker-Content-Digest': expected } });
+  let writes = 0;
+  let visible = false;
+  let replicate = false;
+  const request = async (url, options) => {
+    if (url.endsWith('/0.1.11')) return manifest();
+    assert.equal(url, 'https://ghcr.io/v2/everyonesoftware/logs/manifests/latest');
+    if (options.method === 'PUT') {
+      assert.equal(options.headers['Content-Type'], mediaType);
+      assert.deepEqual(options.body, bytes);
+      writes++;
+      visible = replicate;
+      return new Response(null, { status: 201 });
+    }
+    return visible ? manifest() : Response.json({ errors: [{ code: 'MANIFEST_UNKNOWN' }] }, { status: 404 });
+  };
+  await assert.rejects(promoteLatest(image, 'fixture', digest, request), /changed versioned manifest/);
+  assert.equal(writes, 0);
+  await assert.rejects(promoteLatest(image, 'fixture', expected, request), /Registry readback mismatch/);
+  replicate = true;
+  assert.equal(await promoteLatest(image, 'fixture', expected, request), expected);
+  assert.equal(await promoteLatest(image, 'fixture', expected, request), expected);
+  assert.equal(writes, 2);
 });

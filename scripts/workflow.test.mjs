@@ -188,7 +188,9 @@ test('release is opt-in, serialized, and blocks failed, cancelled, or unexpected
   const publisher = command(release, 'node scripts/release.mjs publish');
   const registry = command(release, 'node scripts/publish-web-image.mjs');
   assert.ok(release.steps.indexOf(publisher) < release.steps.indexOf(registry));
-  assert.equal(registry.if, `steps.${publisher.id}.outputs.web_registry == 'true'`);
+  assert.equal(registry.if, `steps.${publisher.id}.outputs.web_registry_version != ''`);
+  assert.equal(registry.env.VERSION, `\${{ steps.${publisher.id}.outputs.web_registry_version }}`);
+  assert.equal(registry.env.WEB_REGISTRY_REUSE, `\${{ steps.${publisher.id}.outputs.web_registry_reuse }}`);
   assert.equal(registry.env.GH_TOKEN, '${{ github.token }}');
 });
 
