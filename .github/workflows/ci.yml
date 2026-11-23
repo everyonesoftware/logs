@@ -93,7 +93,7 @@ jobs:
           distribution: temurin
           java-version: '21'
       - name: Install the Android compile SDK and build tools
-        run: sdkmanager 'platforms;android-36' 'build-tools;36.0.0'
+        run: '"$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" "platforms;android-36" "build-tools;36.0.0"'
       - name: Test, lint, and check the unsigned release build
         run: bash apps/android/gradlew -p apps/android :app:testDebugUnitTest :app:lintDebug :app:assembleRelease --no-daemon
       - name: Enable KVM for the hosted emulator
@@ -200,12 +200,16 @@ jobs:
             if (!(Test-Path $exe) -or !(Test-Path (Join-Path $installDir 'current\resources.pri')) -or !(Test-Path $updater)) {
               throw 'Installed Logs executable, WinUI resources, or uninstaller missing.'
             }
-            $app = Start-Process -FilePath $exe -WorkingDirectory $env:RUNNER_TEMP -PassThru
+            $startupLog = Join-Path $env:RUNNER_TEMP 'logs-startup.txt'
+            $app = Start-Process -FilePath $exe -WorkingDirectory $env:RUNNER_TEMP -RedirectStandardError $startupLog -PassThru
             $deadline = [DateTime]::UtcNow.AddSeconds(60)
             do {
               Start-Sleep -Milliseconds 250
               $app.Refresh()
-              if ($app.HasExited) { throw "Installed Logs exited before displaying its window: $($app.ExitCode)" }
+              if ($app.HasExited) {
+                if (Test-Path $startupLog) { Get-Content $startupLog }
+                throw "Installed Logs exited before displaying its window: $($app.ExitCode)"
+              }
             } until (($app.MainWindowHandle -ne [IntPtr]::Zero -and $app.MainWindowTitle -eq 'Logs') -or [DateTime]::UtcNow -ge $deadline)
             if ($app.MainWindowHandle -eq [IntPtr]::Zero -or $app.MainWindowTitle -ne 'Logs') { throw 'Installed Logs window never appeared.' }
             Write-Host 'Installed Logs displayed its native window.'

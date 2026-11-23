@@ -32,9 +32,17 @@ public sealed partial class LogsApplication : Application, IXamlMetadataProvider
 
     protected override void OnLaunched(LaunchActivatedEventArgs args)
     {
-        Resources.MergedDictionaries.Add(new XamlControlsResources());
-        Resources["SystemAccentColor"] = Windows.UI.Color.FromArgb(255, 168, 229, 189);
-        window = new MainWindow();
-        window.Activate();
+        try
+        {
+            Resources.MergedDictionaries.Add(new XamlControlsResources());
+            Resources["SystemAccentColor"] = Windows.UI.Color.FromArgb(255, 168, 229, 189);
+            window = new MainWindow();
+            window.Activate();
+        }
+        catch (Exception error)
+        {
+            Console.Error.WriteLine(error);
+            throw;
+        }
     }
 }
