@@ -286,6 +286,8 @@ jobs:
           overwrite: true
 
   release:
+    outputs:
+      services_artifact: ${{ steps.services_capture.outputs.artifact }}
     needs: [validate, web, android, windows]
     if: >-
       !cancelled() &&
@@ -347,9 +349,72 @@ jobs:
           ANDROID_SIGNING_MISSING: ${{ needs.android.outputs.signing_missing }}
         run: node scripts/release.mjs publish
       - name: Publish the verified Web image to GitHub Container Registry
+        id: logs_registry
         if: steps.publish.outputs.web_registry_version != ''
         env:
           GH_TOKEN: ${{ github.token }}
           VERSION: ${{ steps.publish.outputs.web_registry_version }}
           WEB_REGISTRY_REUSE: ${{ steps.publish.outputs.web_registry_reuse }}
         run: node scripts/publish-web-image.mjs
+      - name: Capture original Services publication metadata
+        id: services_capture
+        if: steps.logs_registry.outcome == 'success' && steps.logs_registry.outputs.published_digest != ''
+        continue-on-error: true
+        env:
+          PUBLISHED_DIGEST: ${{ steps.logs_registry.outputs.published_digest }}
+          PUBLISHED_TAGS: |-
+            ${{ steps.logs_registry.outputs.published_image }}
+            ${{ steps.logs_registry.outputs.published_latest }}
+          APP_VERSION: ${{ steps.logs_registry.outputs.published_build }}
+          SERVICES_PUBLISH_PAYLOAD_PATH: ${{ runner.temp }}/services-publish/published.json
+        run: node scripts/publish-notification.mjs capture
+      - name: Retain original Services payload for notification-only retries
+        if: steps.services_capture.outcome == 'success'
+        continue-on-error: true
+        uses: actions/upload-artifact@v7
+        with:
+          name: ${{ steps.services_capture.outputs.artifact }}
+          path: ${{ runner.temp }}/services-publish/published.json
+          if-no-files-found: error
+          retention-days: 30
+          overwrite: false
+          include-hidden-files: false
+          archive: true
+
+  services_notify:
+    name: Notify Services (publication remains separate)
+    needs: release
+    if: ${{ !cancelled() && (github.event_name == 'push' || github.event_name == 'workflow_dispatch' || github.event_name == 'release') && needs.release.result == 'success' && needs.release.outputs.services_artifact != '' && vars.SERVICES_PUBLISH_NOTIFICATIONS == 'true' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: read
+      id-token: write
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v7
+        with:
+          node-version: '24'
+      - name: Require original payload artifact
+        env:
+          PAYLOAD_ARTIFACT: ${{ needs.release.outputs.services_artifact }}
+        run: test -n "$PAYLOAD_ARTIFACT"
+      - uses: actions/download-artifact@v8
+        with:
+          name: ${{ needs.release.outputs.services_artifact }}
+          path: ${{ runner.temp }}/services-publish
+          digest-mismatch: error
+      - uses: tailscale/github-action@v4
+        with:
+          oauth-client-id: ${{ vars.TAILSCALE_CLIENT_ID }}
+          audience: ${{ vars.TAILSCALE_AUDIENCE }}
+          tags: ${{ vars.TAILSCALE_TAGS }}
+          log-mode: quiet
+      - name: Send the retained original payload without rebuilding
+        env:
+          SERVICES_PUBLISH_URL: ${{ vars.SERVICES_PUBLISH_URL }}
+          SERVICES_PUBLISH_TOKEN: ${{ secrets.SERVICES_PUBLISH_TOKEN }}
+          SERVICES_PUBLISH_PAYLOAD_PATH: ${{ runner.temp }}/services-publish/published.json
+        run: node scripts/publish-notification.mjs send

@@ -1,6 +1,6 @@
 import { execFileSync } from 'node:child_process';
 import { createHash } from 'node:crypto';
-import { mkdtempSync, rmSync } from 'node:fs';
+import { appendFileSync, mkdtempSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
 import { pathToFileURL } from 'node:url';
@@ -112,6 +112,19 @@ async function main(env) {
     console.log(`Verified ${image} at ${digest} from ${source}`);
     await promoteLatest(image, token, digest);
     console.log(`Verified ${host}/${match[1]}:latest at ${digest}, matching ${image}`);
+    if (env.GITHUB_OUTPUT) {
+      try {
+        appendFileSync(env.GITHUB_OUTPUT, [
+          'published_digest=' + digest,
+          'published_image=' + image,
+          'published_latest=' + host + '/' + match[1] + ':latest',
+          'published_build=' + match[2].slice('0.1.'.length),
+          '',
+        ].join('\n'));
+      } catch {
+        console.warn('Could not record verified Web image metadata for notification.');
+      }
+    }
   } finally {
     rmSync(configDir, { recursive: true, force: true });
   }
