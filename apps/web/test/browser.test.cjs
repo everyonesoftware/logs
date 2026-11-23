@@ -145,8 +145,8 @@ test('event details support keyboard and pointer and return focus on close', asy
   assert.equal(await page.locator('#detail').innerText(), '');
 });
 
-test('desktop scrolls log rows without moving the page, column headings, or timeline', async t => {
-  const page = await visit(t, { viewport: { width: 1360, height: 680 } });
+async function expectIndependentDesktopScroll(t, viewport) {
+  const page = await visit(t, { viewport });
   const scroller = page.getByRole('region', { name: 'Log entries' });
   const positions = () => page.evaluate(() => ({
     viewport: innerHeight,
@@ -167,6 +167,7 @@ test('desktop scrolls log rows without moving the page, column headings, or time
     const el = document.querySelector('[aria-label="Log entries"]');
     return el.scrollTop > 0 && Math.abs(el.scrollHeight - el.clientHeight - el.scrollTop) <= 1;
   });
+  assert.deepEqual(await positions(), before);
   await page.mouse.wheel(0, 2500);
   const last = row(page).last();
   await last.click();
@@ -177,22 +178,45 @@ test('desktop scrolls log rows without moving the page, column headings, or time
   await page.keyboard.press('Home');
   await page.waitForFunction(() => document.querySelector('[aria-label="Log entries"]').scrollTop === 0);
   assert.deepEqual(await positions(), before);
-});
+}
+
+for (const viewport of [{ width: 1360, height: 680 }, { width: 1128, height: 620 }, { width: 800, height: 450 }]) {
+  test(`${viewport.width}×${viewport.height}: log rows scroll without moving the page, headings, or timeline`,
+    t => expectIndependentDesktopScroll(t, viewport));
+}
 
 test('a scoped event has a readable detail pane in a short desktop window', async t => {
-  const page = await visit(t, { viewport: { width: 791, height: 650 } });
+  const page = await visit(t, { viewport: { width: 791, height: 450 } });
   await page.locator('#jump').click();
   await row(page).first().click();
   const detail = page.getByRole('region', { name: 'Event details' });
   const body = detail.locator('.detail-body');
   const height = await body.evaluate(el => el.clientHeight);
   assert.ok(height >= 100, `Expected readable event details, got ${height}px`);
-  assert.equal(await page.evaluate(() => document.documentElement.scrollHeight), 650);
+  assert.equal(await page.evaluate(() => document.documentElement.scrollHeight), 450);
   await detail.getByText('req-74a3', { exact: true }).scrollIntoViewIfNeeded();
   assert.equal(await page.evaluate(() => scrollY), 0);
   await page.keyboard.press('Escape');
   assert.equal(await page.getByRole('region', { name: 'Metric timeline' }).isVisible(), true);
   assert.equal(await row(page).first().evaluate(el => document.activeElement === el), true);
+});
+
+test('the stacked layout scrolls log rows independently and still lets the page reach the timeline', async t => {
+  const page = await visit(t, { viewport: { width: 760, height: 560 } });
+  const scroller = page.getByRole('region', { name: 'Log entries' });
+  const timeline = page.getByRole('region', { name: 'Metric timeline' });
+  assert.equal(await scroller.evaluate(el => el.scrollHeight > el.clientHeight), true);
+  await scroller.hover();
+  await page.mouse.wheel(0, 2500);
+  await page.waitForFunction(() => document.querySelector('.log-scroll').scrollTop > 0);
+  assert.equal(await page.evaluate(() => scrollY), 0);
+  const jump = timeline.locator('#jump');
+  assert.equal(await jump.evaluate(el => el.getBoundingClientRect().bottom > innerHeight), true);
+  await page.mouse.move(5, 300); // Page margin, outside the log pane.
+  await page.mouse.wheel(0, 2500);
+  await page.waitForFunction(() => scrollY > 0 && document.querySelector('#jump').getBoundingClientRect().bottom <= innerHeight);
+  await jump.click();
+  await page.getByRole('button', { name: 'Clear window' }).waitFor();
 });
 
 test('phone viewport fits the workspace and settings reports no release channel', async t => {

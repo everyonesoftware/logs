@@ -75,8 +75,10 @@ dialog{width:min(420px,calc(100% - 28px));padding:0;border:1px solid #3d4a42;bor
 dialog::backdrop{background:#090c0bd9}
 dialog h3{margin:0 0 12px;font-size:15px}
 #update-status{color:var(--muted);margin:9px 0 1px}
-/* Keep the stacked layout and short windows naturally scrollable. */
-@media(min-width:791px) and (min-height:650px){
+.log-scroll{min-height:0;max-height:clamp(8rem,45dvh,24rem);overflow:auto;overscroll-behavior:contain;scrollbar-gutter:stable;scroll-padding-top:32px}
+.log-head{position:sticky;top:0;z-index:1}
+/* Fit both panes to the window when there's room for the controls and log rows. */
+@media(min-width:791px) and (min-height:450px){
   body{display:grid;grid-template-rows:auto minmax(0,1fr);height:100dvh}
   .wrap{width:100%;margin:0 auto;min-height:0}
   #workspace{display:flex;flex-direction:column;height:100%;min-height:0}
@@ -84,15 +86,14 @@ dialog h3{margin:0 0 12px;font-size:15px}
   .work{flex:1;min-height:0;align-items:stretch}
   .logs{display:flex;flex-direction:column;min-height:0}
   .logs>.card-head{flex-shrink:0}
-  .log-scroll{min-height:0;overflow:auto;overscroll-behavior:contain;scrollbar-gutter:stable;scroll-padding-top:32px}
-  .log-head{position:sticky;top:0;z-index:1}
-  .side{display:flex;flex-direction:column;min-height:0}
+  .log-scroll{max-height:none}
+  .side{display:flex;flex-direction:column;min-height:0;overflow:auto;overscroll-behavior:contain}
   .metric{flex-shrink:0}
   .detail{display:flex;flex-direction:column;min-height:0}
   .detail>.card-head{flex-shrink:0}
   .detail>.detail-body{overflow:auto;overscroll-behavior:contain}
 }
-@media(min-width:791px) and (min-height:650px) and (max-height:820px){
+@media(min-width:791px) and (min-height:450px) and (max-height:820px){
   /* Use the side pane for details rather than squeezing both cards. */
   .side:has(.detail:not([hidden])) .metric{display:none}
   .detail{flex:1}
