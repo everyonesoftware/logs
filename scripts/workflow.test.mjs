@@ -1,10 +1,12 @@
 import assert from 'node:assert/strict';
-import { spawnSync } from 'node:child_process';
+import { execFile, spawnSync } from 'node:child_process';
 import { existsSync, mkdtempSync, mkdirSync, readFileSync, readdirSync, rmSync, writeFileSync } from 'node:fs';
 import { createRequire } from 'node:module';
+import { createServer } from 'node:http';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { test } from 'node:test';
+import { promisify } from 'node:util';
 
 const { parse } = createRequire(import.meta.url)('yaml');
 const directory = new URL('../.github/workflows/', import.meta.url);
@@ -150,6 +152,23 @@ test('Web builds and reloads a Docker archive before running browser tests and r
   for (const [earlier, later] of [[build, reload], [reload, browser], [browser, stage], [stage, upload]]) {
     assert.ok(web.steps.indexOf(earlier) < web.steps.indexOf(later));
   }
+});
+
+test('Web readiness retries a TCP reset while the container starts', async t => {
+  const probe = command(workflow().jobs.web, 'curl --fail').run.split('\n').find(line => line.startsWith('curl '));
+  let requests = 0;
+  const server = createServer((request, response) => {
+    assert.equal(request.url, '/version.json');
+    if (++requests === 1) request.socket.resetAndDestroy();
+    else response.end('{"version":"0.1.1"}');
+  });
+  await new Promise(resolve => server.listen(0, '127.0.0.1', resolve));
+  t.after(() => new Promise(resolve => server.close(resolve)));
+  await promisify(execFile)('bash', ['-euo', 'pipefail', '-c', probe], {
+    env: { ...process.env, address: `127.0.0.1:${server.address().port}` },
+    timeout: 5000,
+  });
+  assert.equal(requests, 2);
 });
 
 test('release is opt-in, serialized, and blocks failed, cancelled, or unexpectedly skipped selected jobs', () => {
