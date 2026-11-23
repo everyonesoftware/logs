@@ -34,23 +34,68 @@ function command(job, source) {
 
 test('one workflow owns main pushes and validates pull requests without write permissions', () => {
   const ci = workflow();
-  const triggers = Object.fromEntries(readdirSync(directory).filter(file => /\.ya?ml$/.test(file)).map(file => [file, parse(readFileSync(new URL(file, directory), 'utf8')).on]));
-  const owners = event => Object.keys(triggers).filter(file => Object.hasOwn(triggers[file], event));
-  for (const event of ['push', 'pull_request', 'workflow_dispatch']) assert.deepEqual(owners(event), ['ci.yml']);
+  const connectionTest = 'services-connection-test.yml';
+  const workflows = Object.fromEntries(readdirSync(directory).filter(file => /\.ya?ml$/.test(file)).map(file => [file, parse(readFileSync(new URL(file, directory), 'utf8'))]));
+  const owners = event => Object.keys(workflows).filter(file => Object.hasOwn(workflows[file].on, event));
+  for (const event of ['push', 'pull_request']) assert.deepEqual(owners(event), ['ci.yml']);
+  const callback = workflows[connectionTest];
+  assert.deepEqual(owners('workflow_dispatch').sort(), callback ? ['ci.yml', connectionTest] : ['ci.yml']);
   for (const event of ['workflow_run', 'pull_request_target']) assert.deepEqual(owners(event), []);
+  if (callback) {
+    assert.deepEqual(Object.keys(callback.on), ['workflow_dispatch']);
+    assert.deepEqual(callback.permissions, { contents: 'read', 'id-token': 'write' });
+    assert.deepEqual(Object.keys(callback.jobs), ['connection-test']);
+    assert.equal(callback.jobs['connection-test'].permissions, undefined);
+    assert.equal(action(callback.jobs['connection-test'], 'actions/checkout').with['persist-credentials'], false);
+    command(callback.jobs['connection-test'], 'node scripts/publisher-connection-test.mjs');
+  }
   assert.deepEqual(ci.on.push, { branches: ['main'] });
   assert.deepEqual(ci.permissions, { contents: 'read' });
-  assert.deepEqual(Object.keys(ci.jobs).sort(), ['android', 'release', 'validate', 'web', 'windows']);
+  const jobs = ['android', 'release', 'validate', 'web', 'windows'];
+  if (Object.hasOwn(ci.jobs, 'services_notify')) jobs.push('services_notify');
+  assert.deepEqual(Object.keys(ci.jobs).sort(), jobs.sort());
   for (const [id, job] of Object.entries(ci.jobs)) {
     assert.equal(job.uses, undefined, id);
     assert.equal(job['continue-on-error'], undefined, id);
+    if (id === 'services_notify') continue; // The generated job is covered separately below.
     if (id !== 'release') assert.equal(job.permissions, undefined, id);
     for (const step of job.steps) {
-      assert.equal(step['continue-on-error'], undefined, step.name);
-      if (step.uses) assert.match(step.uses, /@[0-9a-f]{40}$/, step.uses);
+      const capture = id === 'release' && step.id === 'services_capture';
+      const retain = id === 'release' && step.name === 'Retain original Services payload for notification-only retries';
+      assert.equal(step['continue-on-error'], capture || retain ? true : undefined, step.name);
+      if (step.uses) {
+        if (retain) assert.equal(step.uses, 'actions/upload-artifact@v7');
+        else assert.match(step.uses, /@[0-9a-f]{40}$/, step.uses);
+      }
     }
     assert.equal(action(job, 'actions/checkout').with['persist-credentials'], false);
   }
+});
+
+test('Services notification is isolated and only sends a retained real publication', () => {
+  const { release, services_notify: notify } = workflow().jobs;
+  if (!notify) {
+    assert.equal(release.outputs?.services_artifact, undefined);
+    assert.ok(release.steps.every(step => !step.run?.includes('scripts/publish-notification.mjs') && step.name !== 'Retain original Services payload for notification-only retries'));
+    return;
+  }
+  assert.equal(notify.needs, 'release');
+  assert.equal(notify.if, "${{ !cancelled() && (github.event_name == 'push' || github.event_name == 'workflow_dispatch' || github.event_name == 'release') && needs.release.result == 'success' && needs.release.outputs.services_artifact != '' && vars.SERVICES_PUBLISH_NOTIFICATIONS == 'true' }}");
+  assert.deepEqual(notify.permissions, { contents: 'read', 'id-token': 'write' });
+  for (const step of notify.steps) assert.equal(step['continue-on-error'], undefined, step.name);
+  assert.equal(action(notify, 'actions/checkout').with['persist-credentials'], false);
+  const capture = command(release, 'node scripts/publish-notification.mjs capture');
+  assert.equal(capture.if, "steps.logs_registry.outcome == 'success' && steps.logs_registry.outputs.published_digest != ''");
+  assert.equal(release.outputs.services_artifact, `\${{ steps.${capture.id}.outputs.artifact }}`);
+  const retain = action(release, 'actions/upload-artifact');
+  assert.equal(retain.with.name, release.outputs.services_artifact);
+  assert.equal(retain.with.overwrite, false);
+  const restore = action(notify, 'actions/download-artifact');
+  assert.equal(restore.with.name, '${{ needs.release.outputs.services_artifact }}');
+  assert.equal(restore.with['digest-mismatch'], 'error');
+  const send = command(notify, 'node scripts/publish-notification.mjs send');
+  assert.ok(notify.steps.indexOf(restore) < notify.steps.indexOf(send));
+  assert.equal(send.env.SERVICES_PUBLISH_PAYLOAD_PATH, capture.env.SERVICES_PUBLISH_PAYLOAD_PATH);
 });
 
 test('the live selector fans out to independent platform jobs and uses full history', () => {
