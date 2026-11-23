@@ -9,7 +9,7 @@ Logs is a workspace for searching application logs and comparing them with metri
 | --- | --- | --- | --- |
 | Android | — | — | Not published |
 | Windows x64 | 0.1.16 | [Installer](https://github.com/everyonesoftware/logs/releases/download/v0.1.16/LogsWindows-win-x64-Setup.exe) · [SHA-256](https://github.com/everyonesoftware/logs/releases/download/v0.1.16/LogsWindows-win-x64-Setup.exe.sha256) | Unsigned installer; synthetic-data build |
-| Web | 0.1.16 | [Docker image](https://github.com/everyonesoftware/logs/releases/download/v0.1.16/logs-web-0.1.16-linux-amd64.tar.gz) · [SHA-256](https://github.com/everyonesoftware/logs/releases/download/v0.1.16/logs-web-0.1.16-linux-amd64.tar.gz.sha256) · [Run instructions](https://github.com/everyonesoftware/logs/blob/main/apps/web/README.md) | Linux x64; self-hosted, synthetic data |
+| Web | 0.1.18 | [Docker image](https://github.com/everyonesoftware/logs/releases/download/v0.1.18/logs-web-0.1.18-linux-amd64.tar.gz) · [SHA-256](https://github.com/everyonesoftware/logs/releases/download/v0.1.18/logs-web-0.1.18-linux-amd64.tar.gz.sha256) · [Run instructions](https://github.com/everyonesoftware/logs/blob/main/apps/web/README.md) | Linux x64; self-hosted, synthetic data |
 <!-- current-downloads:end -->
 
 See [release setup and verification](docs/RELEASING.md) for the CI pipeline and first publication.
