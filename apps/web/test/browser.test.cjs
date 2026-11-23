@@ -6,9 +6,12 @@ const sample = require('../../../contracts/sample.json');
 
 let server, browser, url;
 before(async () => {
-  server = createServer();
-  await new Promise(resolve => server.listen(0, '127.0.0.1', resolve));
-  url = `http://127.0.0.1:${server.address().port}`;
+  url = process.env.LOGS_WEB_TEST_URL;
+  if (!url) {
+    server = createServer();
+    await new Promise(resolve => server.listen(0, '127.0.0.1', resolve));
+    url = `http://127.0.0.1:${server.address().port}`;
+  }
   browser = await chromium.launch({ executablePath: process.env.CHROMIUM_PATH });
 });
 after(async () => {
@@ -203,7 +206,7 @@ test('phone viewport fits the workspace and settings reports no release channel'
   const button = page.getByRole('button', { name: 'Settings', exact: true });
   await button.tap();
   const dialog = page.getByRole('dialog', { name: 'Settings' });
-  const { version } = require('../package.json');
+  const version = process.env.LOGS_WEB_TEST_VERSION || require('../package.json').version;
   await dialog.getByRole('heading', { name: `Current Version: ${version}` }).waitFor();
   await dialog.getByRole('button', { name: 'Check for updates' }).tap();
   assert.match(await dialog.getByRole('status').innerText(), /unavailable.*no web release channel/i);

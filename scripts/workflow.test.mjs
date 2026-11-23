@@ -42,8 +42,7 @@ test('one workflow owns main pushes and validates pull requests without write pe
   for (const [id, job] of Object.entries(ci.jobs)) {
     assert.equal(job.uses, undefined, id);
     assert.equal(job['continue-on-error'], undefined, id);
-    if (id === 'validate') assert.deepEqual(job.permissions, { contents: 'read', actions: 'read' });
-    else if (id !== 'release') assert.equal(job.permissions, undefined, id);
+    if (id !== 'release') assert.equal(job.permissions, undefined, id);
     for (const step of job.steps) {
       assert.equal(step['continue-on-error'], undefined, step.name);
       if (step.uses) assert.match(step.uses, /@[0-9a-f]{40}$/, step.uses);
@@ -134,6 +133,25 @@ test('Android signing is trusted-main-only, skips absent credentials and rejects
   assert.equal(action(android, 'actions/upload-artifact').if, `steps.${pack.id}.outputs.ready == 'true'`);
 });
 
+test('Web builds and reloads a Docker archive before running browser tests and retaining it', () => {
+  const { web } = workflow().jobs;
+  assert.equal(action(web, 'actions/checkout').with['fetch-depth'], 0, 'staging must verify the release version against full history');
+  const build = command(web, 'docker build');
+  const reload = command(web, 'docker image load');
+  const browser = command(web, 'npm test');
+  const stop = command(web, 'docker rm');
+  const stage = command(web, 'node scripts/release.mjs stage web');
+  const upload = action(web, 'actions/upload-artifact');
+  assert.equal(web.env.VERSION, '${{ needs.validate.outputs.version }}');
+  assert.equal(reload.if, undefined);
+  assert.match(reload.run, /LOGS_WEB_TEST_URL=.*GITHUB_ENV/);
+  assert.equal(browser.env.LOGS_WEB_TEST_VERSION, web.env.VERSION);
+  assert.equal(stop.if, 'always()');
+  for (const [earlier, later] of [[build, reload], [reload, browser], [browser, stage], [stage, upload]]) {
+    assert.ok(web.steps.indexOf(earlier) < web.steps.indexOf(later));
+  }
+});
+
 test('release is opt-in, serialized, and blocks failed, cancelled, or unexpectedly skipped selected jobs', () => {
   const { release } = workflow().jobs;
   assert.deepEqual(release.needs, ['validate', 'web', 'android', 'windows']);
@@ -155,7 +173,7 @@ test('publication restores exact-source artifacts from the same run and rejects 
   const { release } = ci.jobs;
   const publish = command(release, 'node scripts/release.mjs publish');
 
-  for (const platform of ['android', 'windows']) {
+  for (const platform of ['android', 'windows', 'web']) {
     const job = ci.jobs[platform];
     const upload = action(job, 'actions/upload-artifact');
     if (platform === 'windows') {

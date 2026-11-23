@@ -94,6 +94,26 @@ test('bad readback bytes leave the release a draft', t => {
   assert.deepEqual(events, ['tag', 'draft', 'upload']);
 });
 
+test('a web-only release publishes and verifies the image without changing the native index schema', t => {
+  const state = fixture(t);
+  const { cwd, remote, source, version, events, files } = state;
+  const directory = join(cwd, 'dist/web');
+  rmSync(join(cwd, 'dist/android'), { recursive: true });
+  mkdirSync(directory);
+  const archive = `logs-web-${version}-linux-amd64.tar.gz`;
+  writeFileSync(join(directory, archive), 'fixture image');
+  stage(directory, 'web', version, source);
+  publish(cwd, remote, source, version, 'web');
+  assert.deepEqual(events, ['tag', 'draft', 'upload', 'promote', 'readme']);
+  assert.deepEqual(files.map(file => file.name), [archive, `${archive}.sha256`, 'logs-web-release.json', 'latest-versions.json']);
+  assert.deepEqual(JSON.parse(files.at(-1).bytes), { schema: 1, android: null, windows: null });
+  assert.ok(state.readme().includes(`/releases/download/v${version}/${archive}`));
+  publish(cwd, remote, source, version, 'maintenance');
+  assert.deepEqual(events, ['tag', 'draft', 'upload', 'promote', 'readme']);
+  files.find(file => file.name === archive).digest = `sha256:${'0'.repeat(64)}`;
+  assert.throws(() => publish(cwd, remote, source, version, 'maintenance'), /Wrong remote digest/);
+});
+
 test('auto rechecks a missing platform under the publication lock before any write', t => {
   const { cwd, remote, source, version, events } = fixture(t);
   assert.throws(() => publish(cwd, remote, source, version), /windows artifacts are now required.*component=all/);

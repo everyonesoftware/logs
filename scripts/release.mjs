@@ -38,6 +38,7 @@ function relation(cwd, a, b) {
   return 'divergent';
 }
 function owners(path) {
+  if (path === '.dockerignore') return ['web'];
   if (['README.md', 'AGENTS.md', 'scripts/release.mjs', 'scripts/release.test.mjs', 'scripts/publisher.test.mjs', 'scripts/workflow.test.mjs'].includes(path) || path.startsWith('docs/')) return [];
   if (path.startsWith('mockups/')) return [];
   for (const platform of platforms) {
@@ -60,7 +61,8 @@ export function affected(cwd, platform, baseline, source) {
 function names(platform, version) {
   if (platform === 'android') return [`LogsAndroid-${version}.apk`];
   if (platform === 'windows') return [windowsInstaller, `LogsWindows-${version}-win-x64-full.nupkg`, 'releases.win-x64.json'];
-  throw new Error(`Unknown native platform: ${platform}`);
+  if (platform === 'web') return [`logs-web-${version}-linux-amd64.tar.gz`];
+  throw new Error(`Unknown platform: ${platform}`);
 }
 const manifestName = platform => `logs-${platform}-release.json`;
 const checksumName = (platform, version) => `${names(platform, version)[0]}.sha256`;
@@ -109,23 +111,25 @@ export function inspect(directory, platform, version, source) {
     const actual = describe(directory, expected.name);
     requireThat(actual.size === expected.size && actual.sha256 === expected.sha256, `Changed artifact bytes: ${expected.name}`);
   }
-  requireThat(readFileSync(join(directory, checksumName(platform, version)), 'utf8') === checksum(manifest.files[0]), 'Installer checksum sidecar mismatch');
+  requireThat(readFileSync(join(directory, checksumName(platform, version)), 'utf8') === checksum(manifest.files[0]), 'Package checksum sidecar mismatch');
   return manifest;
 }
 
 export function downloads(repo, tags) {
-  const rows = native.map(platform => {
+  const webInstructions = `https://github.com/${repo}/blob/main/apps/web/README.md`;
+  const rows = platforms.map(platform => {
     const tag = tags[platform];
+    if (platform === 'web' && !tag) return `| Web | — | [Run locally](${webInstructions}) | No production deployment |`;
     const label = platform === 'android' ? 'Android' : 'Windows x64';
     const caveat = platform === 'android' ? 'Signed APK; synthetic-data build' : 'Unsigned installer; synthetic-data build';
     if (!tag) return `| ${label} | — | — | Not published |`;
     requireThat(tagPattern.test(tag), `Invalid download tag: ${tag}`);
     const version = tag.slice(1);
     const url = `https://github.com/${repo}/releases/download/${tag}`;
+    if (platform === 'web') return `| Web | ${version} | [Docker image](${url}/${names(platform, version)[0]}) · [SHA-256](${url}/${checksumName(platform, version)}) · [Run instructions](${webInstructions}) | Linux x64; self-hosted, synthetic data |`;
     return `| ${label} | ${version} | [${platform === 'android' ? 'APK' : 'Installer'}](${url}/${names(platform, version)[0]}) · [SHA-256](${url}/${checksumName(platform, version)}) | ${caveat} |`;
   });
-  return [markerStart, '## Current downloads', '', '| Platform | Version | Download | Status |', '| --- | --- | --- | --- |', ...rows,
-    `| Web | — | [Run locally](https://github.com/${repo}/blob/main/apps/web/README.md) | No production deployment |`, markerEnd].join('\n');
+  return [markerStart, '## Current downloads', '', '| Platform | Version | Download | Status |', '| --- | --- | --- | --- |', ...rows, markerEnd].join('\n');
 }
 export function replaceTable(body, table) {
   const start = body.indexOf(markerStart);
@@ -177,11 +181,11 @@ function publications(cwd, remote) {
   const stable = releases.filter(r => !r.draft && !r.prerelease).sort(byVersion);
   const current = {};
   for (const release of stable) {
-    if (native.every(platform => current[platform])) break;
+    if (platforms.every(platform => current[platform])) break;
     const tag = release.tag_name;
     const version = tag.slice(1);
     const assets = inventory(remote.pages(`releases/${release.id}/assets?per_page=100`));
-    for (const platform of native) {
+    for (const platform of platforms) {
       const entry = assets.get(manifestName(platform));
       if (current[platform] || !entry || !fileNames(platform, version).every(name => assets.has(name))) continue;
       const source = remote.tagSource(tag);
@@ -194,7 +198,7 @@ function publications(cwd, remote) {
   }
   return { releases, stable, current };
 }
-const tagsFor = current => Object.fromEntries(native.map(platform => [platform, current[platform]?.tag ?? null]));
+const tagsFor = current => Object.fromEntries(platforms.map(platform => [platform, current[platform]?.tag ?? null]));
 
 function select(cwd, env, remote, source, version) {
   const target = env.TARGET_COMPONENT || 'auto';
@@ -208,10 +212,7 @@ function select(cwd, env, remote, source, version) {
     decisions = Object.fromEntries(platforms.map(platform => [platform, affected(cwd, platform, base, source)]));
   } else {
     const { current } = publications(cwd, remote);
-    const baseline = remote.pages('actions/runs?branch=main&event=push&status=success&per_page=100', 'workflow_runs')
-      .find(run => run.path === '.github/workflows/ci.yml' && String(run.id) !== env.GITHUB_RUN_ID
-        && ['same', 'ancestor'].includes(relation(cwd, run.head_sha, source)))?.head_sha;
-    decisions = Object.fromEntries(platforms.map(platform => [platform, affected(cwd, platform, platform === 'web' ? baseline : current[platform]?.source, source)]));
+    decisions = Object.fromEntries(platforms.map(platform => [platform, affected(cwd, platform, current[platform]?.source, source)]));
   }
   const output = Object.entries({ ...decisions, version }).map(([k, v]) => `${k}=${v}`).join('\n') + '\n';
   if (env.GITHUB_OUTPUT) appendFileSync(env.GITHUB_OUTPUT, output);
@@ -257,21 +258,21 @@ export function publish(cwd, remote, source, version, target = 'auto', androidSi
     const line = existingRelease.body?.split('\n')[0];
     requireThat(line?.startsWith(prefix) && line.endsWith(' -->'), `Missing original release plan for draft ${tag}`);
     frozen = JSON.parse(line.slice(prefix.length, -4));
-    requireThat(frozen?.source === source && native.some(platform => frozen[platform] === tag), `Invalid draft release plan for ${tag}`);
+    requireThat(frozen?.source === source && platforms.some(platform => frozen[platform] === tag), `Invalid draft release plan for ${tag}`);
   }
   if (!older && !existingRelease?.draft && existingRelease) {
     requireThat(!existingRelease.prerelease && remote.tagSource(tag) === source, `Existing release is not the expected stable source: ${tag}`);
-    for (const platform of native) {
+    for (const platform of platforms) {
       if (existsSync(join(cwd, 'dist', platform))) requireThat(tags[platform] === tag, `Cannot add ${platform} to published ${tag}; publish it from a new main commit`);
     }
     console.log(`${tag} already published; leaving binaries unchanged`);
   } else if (!older) {
-    for (const platform of native) {
+    for (const platform of platforms) {
       const directory = join(cwd, 'dist', platform);
       const hasArtifact = existsSync(directory);
       if (frozen) {
         if (frozen[platform] !== tag) {
-          requireThat(frozen[platform] === tags[platform], `Draft ${tag} predates the current ${platform} publication; use a new main commit with component=all`);
+          requireThat((frozen[platform] ?? null) === tags[platform], `Draft ${tag} predates the current ${platform} publication; use a new main commit with component=all`);
           continue;
         }
         requireThat(hasArtifact, `Restore the original ${platform} artifact before retrying draft ${tag}`);
@@ -289,14 +290,15 @@ export function publish(cwd, remote, source, version, target = 'auto', androidSi
     console.log(`Skipping stale publication ${tag}; ${latest.tag_name} is already published`);
   }
   if (assets.size) {
-    const index = Buffer.from(`${JSON.stringify({ schema: 1, ...tags })}\n`);
+    const nativeTags = Object.fromEntries(native.map(platform => [platform, tags[platform]]));
+    const index = Buffer.from(`${JSON.stringify({ schema: 1, ...nativeTags })}\n`);
     const indexPath = join(cwd, 'dist', indexName);
     writeFileSync(indexPath, index, { flag: 'wx' });
     assets.set(indexName, { ...describeBytes(indexName, index), path: indexPath });
     const title = `Logs ${version}`;
     const body = downloads(remote.repo, tags);
     const fingerprint = digest(JSON.stringify([...assets.values()].map(({ name, size, sha256 }) => ({ name, size, sha256 }))));
-    const draftBody = `${prefix}${JSON.stringify({ source, ...tags, fingerprint })} -->\n\n${body}`;
+    const draftBody = `${prefix}${JSON.stringify({ source, ...nativeTags, ...(tags.web ? { web: tags.web } : {}), fingerprint })} -->\n\n${body}`;
     const refs = remote.pages(`git/matching-refs/tags/${tag}?per_page=100`);
     if (!refs.some(ref => ref.ref === `refs/tags/${tag}`)) {
       requireThat(!existingRelease, `Existing draft has no exact tag: ${tag}`);
