@@ -128,7 +128,7 @@ export function downloads(repo, tags) {
     requireThat(tagPattern.test(tag), `Invalid download tag: ${tag}`);
     const version = tag.slice(1);
     const url = `https://github.com/${repo}/releases/download/${tag}`;
-    if (platform === 'web') return `| Web | ${version} | [Docker image](${url}/${names(platform, version)[0]}) · [SHA-256](${url}/${checksumName(platform, version)}) · [Run instructions](${webInstructions}) | Linux x64; self-hosted, synthetic data |`;
+    if (platform === 'web') return `| Web | ${version} | [Docker image](${url}/${names(platform, version)[0]}) · [SHA-256](${url}/${checksumName(platform, version)}) · [Run instructions](${webInstructions}) | Linux x64; self-hosted |`;
     return `| ${label} | ${version} | [${platform === 'android' ? 'APK' : 'Installer'}](${url}/${names(platform, version)[0]}) · [SHA-256](${url}/${checksumName(platform, version)}) | ${caveat} |`;
   });
   return [markerStart, '## Current downloads', '', '| Platform | Version | Download | Status |', '| --- | --- | --- | --- |', ...rows, markerEnd].join('\n');

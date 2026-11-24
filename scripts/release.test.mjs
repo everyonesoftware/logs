@@ -58,8 +58,9 @@ test('staging binds a package and checksum to the exact source/version; modified
 
 test('current downloads keeps unchanged packages at their verified original tag', () => {
   assert.equal(typeof tooling.downloads, 'function', 'download table is not implemented');
-  const table = tooling.downloads('everyonesoftware/logs', { android: 'v0.1.9', windows: 'v0.1.12' });
+  const table = tooling.downloads('everyonesoftware/logs', { android: 'v0.1.9', windows: 'v0.1.12', web: 'v0.1.18' });
   assert.match(table, /releases\/download\/v0\.1\.9\/LogsAndroid-0\.1\.9\.apk/);
   assert.match(table, /releases\/download\/v0\.1\.12\/LogsWindows-win-x64-Setup\.exe/);
   assert.doesNotMatch(table, /releases\/download\/v0\.1\.12\/LogsAndroid/);
+  assert.match(table, /^\| Web \| 0\.1\.18 \|.* \| Linux x64; self-hosted \|$/m);
 });

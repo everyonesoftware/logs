@@ -1,6 +1,6 @@
 # Logs for Windows
 
-Native WinUI 3 implementation of the Logs-first investigation layout in `mockups/Logs.html`. It embeds `contracts/sample.json` and runs offline. The chart shows the one metric the shared fixture defines; the app has no live telemetry, authentication, installer, or update feed. Settings shows the assembly version and that updates are unavailable. Startup handles Velopack lifecycle arguments without automatically applying updates.
+Native WinUI 3 implementation of the Logs-first investigation layout in `mockups/Logs.html`. It embeds `contracts/sample.json` and runs offline. The chart shows the one metric the shared fixture defines; the app has no live telemetry, authentication, installer, or update feed. Settings shows the assembly version, disables update checks, and directs users to Logs on the web to manage API keys. Startup handles Velopack lifecycle arguments without automatically applying updates.
 
 ## Build and run on Windows x64
 
@@ -21,6 +21,7 @@ The default native publish is unpackaged and self-contained. Keep the complete p
 - Focus search with `/`. Search `req-74a2` (5 events); combine it with Music and Errors (3 events). Search for a nonexistent term, then reset. Check that switching ranges while scoped clears the metric scope.
 - Activate the peak marker or its labeled action. Verify Music is selected and the seven events in 14:30–14:35 UTC appear. Clear the window; Music stays selected. At 10 minutes, jump again and verify the range expands to 30 minutes and all seven events are visible.
 - Open a log row by pointer and keyboard, check source and request ID, and close with Escape and the close button. Verify focus returns to the row and filtering away a selected row clears its detail. Open Settings and return without losing the investigation.
+- In Settings, verify the version and API keys cards stack, the update button is disabled with a visible explanation, and the web handoff is readable without an interactive key control. Check a narrow window, enlarged text, and a Windows contrast theme.
 
 ## Linux compile and logic checks
 

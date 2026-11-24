@@ -37,9 +37,10 @@ kbd,.tag{border:1px solid var(--line);border-radius:4px;background:var(--raised)
 .row:hover,.row[aria-pressed=true]{background:#222c26}
 .row[aria-pressed=true]{box-shadow:inset 2px 0 var(--mint)}
 .row .time,.row .app{color:#b8c4bd}
+.row .app{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .row .msg{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .sev{font-size:10px;letter-spacing:.02em;justify-self:start;padding:2px 5px;border-radius:4px;background:#252c29;color:#b6c4ba}
-.sev.error{color:var(--red);background:#382522}
+.sev.error,.sev.fatal{color:var(--red);background:#382522}
 .sev.warn{color:var(--amber);background:#342d21}
 .empty{padding:32px 18px;color:var(--muted);text-align:center}
 .metric-body,.detail-body{padding:13px 14px}
@@ -74,7 +75,32 @@ kbd,.tag{border:1px solid var(--line);border-radius:4px;background:var(--raised)
 dialog{width:min(420px,calc(100% - 28px));padding:0;border:1px solid #3d4a42;border-radius:10px;background:var(--panel);color:var(--text)}
 dialog::backdrop{background:#090c0bd9}
 dialog h3{margin:0 0 12px;font-size:15px}
-#update-status{color:var(--muted);margin:9px 0 1px}
+.settings-overview{max-width:1060px;width:100%;overflow:auto}
+.settings-overview h1{margin:0 0 16px;font-size:30px;letter-spacing:-.035em}
+.settings-overview .card+.card{margin-top:12px}
+.settings-head,.settings-controls{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px}
+.settings-head,.settings-body,.settings-guide{padding:13px 15px}
+.settings-head h2,#key-dialog h2{font-size:16px;margin:0}
+.settings-head p,.settings-body p,.settings-guide p{margin:4px 0 0;color:var(--muted)}
+.settings-body,.settings-guide{border-top:1px solid var(--line)}
+.settings-controls{justify-content:flex-start}
+.settings-body label,#key-dialog label{display:block;margin:8px 0 4px}
+.settings-overview input,#key-dialog input{min-width:0;max-width:100%;padding:7px 10px;border:1px solid var(--line);border-radius:7px;background:var(--bg)}
+.settings-guide summary{cursor:pointer;color:var(--mint)}
+.settings-guide code{overflow-wrap:anywhere}
+.primary{background:var(--mint);color:var(--bg);font-weight:650;border-color:var(--mint)}
+.primary:hover{background:#c4f0d2;color:var(--bg)}
+.primary.danger{color:var(--red);background:#382522;border-color:#69413d}
+.settings-body ul{list-style:none;margin:0 0 10px;padding:0}
+.settings-body .key-row{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,.8fr) auto;gap:8px;align-items:center;padding:7px 0;border-bottom:1px solid var(--line);overflow-wrap:anywhere}
+.key-row code{display:block;color:var(--muted);font:12px var(--mono)}
+.key-revoked{color:var(--muted);font-size:12px}
+#key-dialog{width:min(460px,calc(100% - 28px))}
+#key-dialog p{color:var(--muted);margin:8px 0}
+#key-dialog input{width:100%}
+#key-dialog .settings-controls{justify-content:flex-end;margin-top:12px}
+#copy-key{margin-top:8px}
+@media(max-width:480px){.settings-body .key-row{grid-template-columns:minmax(0,1fr) auto}.settings-body .key-row .small{grid-row:2;grid-column:1/-1}}
 .log-scroll{min-height:0;max-height:clamp(8rem,45dvh,24rem);overflow:auto;overscroll-behavior:contain;scrollbar-gutter:stable;scroll-padding-top:32px}
 .log-head{position:sticky;top:0;z-index:1}
 /* Fit both panes to the window when there's room for the controls and log rows. */
@@ -82,7 +108,7 @@ dialog h3{margin:0 0 12px;font-size:15px}
   body{display:grid;grid-template-rows:auto minmax(0,1fr);height:100dvh}
   .wrap{width:100%;margin:0 auto;min-height:0}
   #workspace{display:flex;flex-direction:column;height:100%;min-height:0}
-  .search,.toolbar,.scope{flex-shrink:0}
+  .search,.toolbar,.scope,#log-status{flex-shrink:0}
   .work{flex:1;min-height:0;align-items:stretch}
   .logs{display:flex;flex-direction:column;min-height:0}
   .logs>.card-head{flex-shrink:0}

@@ -4,8 +4,8 @@
 !apps/web/Dockerfile
 !apps/web/app.js
 !apps/web/index.html
+!apps/web/logs.cjs
 !apps/web/package.json
 !apps/web/server.cjs
+!apps/web/settings.js
 !apps/web/styles.css
-!contracts/
-!contracts/sample.json

@@ -90,7 +90,15 @@ jobs:
           test "$(docker image inspect --format '{{.Os}}/{{.Architecture}}' "$image")" = linux/amd64
           test "$(docker image inspect --format '{{.Config.User}}' "$image")" = node
           test "$(docker image inspect --format '{{index .Config.Labels "org.opencontainers.image.revision"}}' "$image")" = "$GITHUB_SHA"
-          docker run --detach --name logs-web-ci --publish 127.0.0.1::4173 "$image"
+          LOGS_INGEST_TOKEN=$(openssl rand -hex 32)
+          LOGS_ADMIN_TOKEN=$(openssl rand -hex 32)
+          echo "::add-mask::$LOGS_INGEST_TOKEN"
+          echo "::add-mask::$LOGS_ADMIN_TOKEN"
+          export LOGS_INGEST_TOKEN LOGS_ADMIN_TOKEN
+          echo "LOGS_WEB_TEST_TOKEN=$LOGS_INGEST_TOKEN" >> "$GITHUB_ENV"
+          echo "LOGS_WEB_TEST_ADMIN_TOKEN=$LOGS_ADMIN_TOKEN" >> "$GITHUB_ENV"
+          docker network create --driver bridge logs-web-ci-private
+          docker run --detach --name logs-web-ci --network logs-web-ci-private --env LOGS_INGEST_TOKEN --env LOGS_ADMIN_TOKEN --volume logs-web-ci-data:/var/lib/logs --publish 127.0.0.1::4173 "$image"
           address=$(docker port logs-web-ci 4173/tcp)
           curl --fail --silent --show-error --retry 15 --retry-all-errors --retry-delay 1 --retry-max-time 20 --max-time 5 "http://$address/version.json"
           echo "LOGS_WEB_TEST_URL=http://$address" >> "$GITHUB_ENV"
@@ -98,6 +106,13 @@ jobs:
         env:
           LOGS_WEB_TEST_VERSION: ${{ needs.validate.outputs.version }}
         run: npm test
+      - name: Verify log storage survives container replacement
+        run: |
+          docker container rm --force logs-web-ci
+          docker run --detach --name logs-web-ci --network logs-web-ci-private --volume logs-web-ci-data:/var/lib/logs --publish 127.0.0.1::4173 "logs-web:$VERSION"
+          address=$(docker port logs-web-ci 4173/tcp)
+          curl --fail --silent --show-error --retry 15 --retry-all-errors --retry-delay 1 --retry-max-time 20 --max-time 5 "http://$address/api/logs" |
+            node -e 'const {events} = JSON.parse(require("node:fs").readFileSync(0, "utf8")); if (!events.some(event => event.requestId === "request-live")) throw new Error("Missing browser-test event after replacement");'
       - name: Stop the smoke-test container
         if: always()
         run: |
@@ -105,6 +120,8 @@ jobs:
             docker logs logs-web-ci
             docker rm --force logs-web-ci
           fi
+          docker volume rm logs-web-ci-data 2>/dev/null || true
+          docker network rm logs-web-ci-private 2>/dev/null || true
       - name: Stage the tested Docker archive and its checksum
         working-directory: .
         run: node scripts/release.mjs stage web "$VERSION" "$GITHUB_SHA"

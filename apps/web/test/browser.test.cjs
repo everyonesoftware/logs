@@ -1,14 +1,23 @@
 const assert = require('node:assert/strict');
+const { randomBytes } = require('node:crypto');
 const { before, after, test } = require('node:test');
 const { chromium } = require(process.env.PLAYWRIGHT_MODULE || 'playwright');
 const { createServer } = require('../server.cjs');
 const sample = require('../../../contracts/sample.json');
 
 let server, browser, url;
+const token = process.env.LOGS_WEB_TEST_TOKEN || randomBytes(32).toString('hex');
+const adminToken = randomBytes(32).toString('hex');
 before(async () => {
   url = process.env.LOGS_WEB_TEST_URL;
+  if (url) {
+    const target = new URL(url);
+    assert.equal(target.protocol, 'http:');
+    assert.ok(['localhost', '127.0.0.1', '[::1]'].includes(target.hostname), 'Use a disposable loopback target.');
+    assert.ok(process.env.LOGS_WEB_TEST_TOKEN && process.env.LOGS_WEB_TEST_ADMIN_TOKEN, 'Provide both disposable test credentials.');
+  }
   if (!url) {
-    server = createServer();
+    server = createServer({ token, adminToken });
     await new Promise(resolve => server.listen(0, '127.0.0.1', resolve));
     url = `http://127.0.0.1:${server.address().port}`;
   }
@@ -25,10 +34,12 @@ async function visit(t, options) {
   page.on('pageerror', error => errors.push(error.message));
   page.on('console', message => { if (message.type() === 'error') errors.push(message.text()); });
   t.after(() => assert.deepEqual(errors, []));
+  await mockInvestigation(page);
   await page.goto(url);
   await page.getByRole('status').filter({ hasText: /\d+ events/ }).waitFor();
   return page;
 }
+const mockInvestigation = (page, fixture = sample) => page.route('**/api/logs', route => route.fulfill({ json: fixture }));
 const row = page => page.locator('#rows button');
 const seconds = value => value.split(':').map(Number).reduce((acc, part) => acc * 60 + part, 0);
 const within = (minutes, events = sample.events) => events.filter(event => {
@@ -112,7 +123,7 @@ test('correlation includes the exact start and excludes the exact end', async t 
   const { metric } = sample;
   const event = sample.events.find(e => e.app === metric.app);
   const events = [...sample.events, { ...event, id: 'start', time: metric.windowStart }, { ...event, id: 'end', time: metric.windowEnd }];
-  await page.route('**/sample.json', route => route.fulfill({ json: { ...sample, events } }));
+  await mockInvestigation(page, { ...sample, events });
   await page.goto(url);
   await page.locator('#jump').click();
   assert.equal(await row(page).filter({ hasText: metric.windowStart }).count(), 1);
@@ -229,41 +240,113 @@ test('phone viewport fits the workspace and settings reports no release channel'
   assert.equal(await page.evaluate(() => document.documentElement.scrollWidth), 360);
   const button = page.getByRole('button', { name: 'Settings', exact: true });
   await button.tap();
-  const dialog = page.getByRole('dialog', { name: 'Settings' });
+  const overview = page.getByRole('main', { name: 'Settings' });
   const version = process.env.LOGS_WEB_TEST_VERSION || require('../package.json').version;
-  await dialog.getByRole('heading', { name: `Current Version: ${version}` }).waitFor();
-  await dialog.getByRole('button', { name: 'Check for updates' }).tap();
-  assert.match(await dialog.getByRole('status').innerText(), /unavailable.*no web release channel/i);
+  await overview.getByRole('heading', { name: `Current Version: ${version}` }).waitFor();
+  assert.equal(await overview.getByRole('heading', { name: 'API keys' }).isVisible(), true);
+  assert.match(await overview.innerText(), /no web release channel/i);
   await page.keyboard.press('Escape');
-  assert.equal(await dialog.isVisible(), false);
-  assert.equal(await button.evaluate(e => e === document.activeElement), true);
+  assert.equal(await overview.isVisible(), false);
+  assert.equal(await page.evaluate(() => document.activeElement.id), 'settings');
   assert.equal(await detail.isVisible(), true);
   await button.tap();
-  await dialog.getByRole('button', { name: 'Close settings' }).tap();
-  assert.equal(await dialog.isVisible(), false);
+  await page.getByRole('button', { name: 'Back to logs' }).tap();
+  assert.equal(await overview.isVisible(), false);
 });
 
-test('failed fixture load is explicit and the workspace recovers on reload', async t => {
+async function verifySenderKeys(t) {
+  let target = url;
+  const credential = process.env.LOGS_WEB_TEST_URL ? process.env.LOGS_WEB_TEST_ADMIN_TOKEN : adminToken;
+  if (!process.env.LOGS_WEB_TEST_URL) {
+    const receiver = createServer({ adminToken });
+    await new Promise(resolve => receiver.listen(0, '127.0.0.1', resolve));
+    t.after(() => new Promise(resolve => receiver.close(resolve)));
+    target = `http://127.0.0.1:${receiver.address().port}`;
+  }
   const page = await browser.newPage();
   t.after(() => page.close());
-  await page.route('**/sample.json', route => route.fulfill({ status: 503 }));
+  await page.goto(target);
+  await page.getByRole('button', { name: 'Settings', exact: true }).click();
+  const settings = page.getByRole('main', { name: 'Settings' });
+  await settings.getByLabel('Administrator token').fill(credential);
+  await settings.getByRole('button', { name: 'Unlock' }).click();
+  await settings.getByText('No API keys yet.', { exact: true }).waitFor();
+  await settings.getByRole('button', { name: 'Create API key' }).click();
+  const editor = page.getByRole('dialog', { name: 'Create API key' });
+  await editor.getByLabel('Application name').fill('Browser worker');
+  await editor.getByRole('button', { name: 'Create API key' }).click();
+  const reveal = page.getByRole('dialog', { name: 'API key created' });
+  const secret = await reveal.getByLabel('Sender API key').inputValue();
+  await reveal.getByRole('button', { name: 'Done' }).click();
+  assert.equal(await page.getByLabel('Sender API key').inputValue(), '');
+  const send = () => fetch(`${target}/api/logs`, {
+    method: 'POST', headers: { authorization: `Bearer ${secret}`, 'content-type': 'application/json' },
+    body: JSON.stringify({ app: 'browser-worker', level: 'INFO', message: 'Managed key accepted' }),
+  });
+  await page.getByRole('button', { name: 'Back to logs' }).click();
+  assert.equal((await send()).status, 201);
+  await row(page).filter({ hasText: 'Managed key accepted' }).waitFor({ timeout: 8000 });
+  await page.getByRole('button', { name: 'Settings', exact: true }).click();
+  await settings.getByLabel('Administrator token').fill(credential);
+  await settings.getByRole('button', { name: 'Unlock' }).click();
+  await settings.getByRole('button', { name: 'Revoke Browser worker' }).click();
+  await page.getByRole('dialog', { name: 'Revoke API key?' }).getByRole('button', { name: 'Revoke key' }).click();
+  await settings.getByText('Revoked', { exact: true }).waitFor();
+  assert.equal((await send()).status, 401);
+}
+
+test('failed initial log load is explicit and the workspace retries automatically', async t => {
+  const page = await browser.newPage();
+  t.after(() => page.close());
+  await page.route('**/api/logs', route => route.fulfill({ status: 503 }));
   await page.goto(url);
-  await page.getByRole('status').filter({ hasText: 'Sample data could not be loaded' }).waitFor();
+  await page.getByRole('status').filter({ hasText: 'Could not load logs' }).waitFor();
   assert.equal(await page.getByRole('searchbox').isVisible(), false);
-  await page.unroute('**/sample.json');
-  await page.reload();
+  await page.unroute('**/api/logs');
   await page.getByRole('searchbox').waitFor();
 });
 
-test('server exposes only explicitly mapped read-only assets', async () => {
-  const fixture = await fetch(`${url}/sample.json`);
-  assert.deepEqual(await fixture.json(), sample);
-  assert.match(fixture.headers.get('content-type'), /application\/json/);
+test('server exposes only explicitly mapped assets and keeps test fixtures private', async () => {
   assert.equal((await fetch(`${url}/styles.css`, { method: 'HEAD' })).status, 200);
-  for (const path of ['/mockups/Logs.html', '/server.cjs', '/contracts/sample.json', '/ingest']) {
+  for (const path of ['/mockups/Logs.html', '/server.cjs', '/sample.json', '/contracts/sample.json', '/ingest']) {
     assert.equal((await fetch(url + path)).status, 404);
   }
   const post = await fetch(`${url}/sample.json`, { method: 'POST' });
   assert.equal(post.status, 405);
   assert.equal(post.headers.get('allow'), 'GET, HEAD');
 });
+
+test('the live workspace starts empty and receives a pushed log without a reload', async t => {
+  const page = await browser.newPage({ viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true });
+  t.after(() => page.close());
+  await page.goto(url);
+  await page.getByText('No logs in the last hour.').waitFor({ timeout: 2500 });
+  assert.equal(await page.getByText('Sample data', { exact: true }).count(), 0);
+  assert.equal(await page.getByRole('img').count(), 0);
+  const search = page.getByRole('searchbox');
+  await search.fill('request-live');
+  const message = 'Sender connected <img src=x onerror=alert(1)>';
+  const timestamp = new Date().toISOString();
+  const sent = await fetch(`${url}/api/logs`, {
+    method: 'POST', headers: { authorization: `Bearer ${token}`, 'content-type': 'application/json' },
+    body: JSON.stringify({ timestamp, app: 'worker', level: 'DEBUG', message, source: 'collector', requestId: 'request-live' }),
+  });
+  assert.equal(sent.status, 201);
+  const item = row(page).filter({ hasText: message });
+  await item.waitFor({ timeout: 8000 });
+  assert.equal(await search.evaluate(el => el === document.activeElement), true);
+  assert.equal(await row(page).locator('img').count(), 0);
+  await page.getByLabel('Application', { exact: true }).selectOption('worker');
+  await page.getByLabel('Severity', { exact: true }).selectOption('DEBUG');
+  await item.tap();
+  const detail = page.getByRole('region', { name: 'Event details' });
+  assert.equal(await detail.getByRole('heading', { name: message }).isVisible(), true);
+  assert.equal(await detail.getByText(timestamp, { exact: true }).isVisible(), true);
+  assert.equal(await page.evaluate(() => document.documentElement.scrollWidth), 390);
+  await page.route('**/api/logs', route => route.fulfill({ status: 503 }));
+  await page.getByText(/Could not refresh logs/).waitFor({ timeout: 8000 });
+  assert.equal(await detail.isVisible(), true);
+});
+
+// On the packaged server, keep the managed-key write after the legacy empty-viewer check.
+test('Settings manages real sender keys and a sent event arrives in the live workspace', verifySenderKeys);

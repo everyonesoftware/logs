@@ -37,9 +37,23 @@ class InvestigationUiTest {
         ui.onNodeWithText("Reset filters").performClick()
         ui.onNodeWithTag("investigation").performScrollToNode(hasText("15 events"))
         ui.onNodeWithContentDescription("Settings").performClick()
-        ui.onNodeWithText("Current Version: 0.1.0").assertIsDisplayed()
+        val installedVersion = ui.activity.packageManager.getPackageInfo(ui.activity.packageName, 0).versionName
+        ui.onNodeWithText("Current Version: $installedVersion").assertIsDisplayed()
         ui.onNodeWithText("Check for updates").assertIsNotEnabled()
         ui.onNodeWithContentDescription("Back").performClick()
         ui.onNodeWithText("Sample data").assertIsDisplayed()
+    }
+
+    @Test fun settingsOverviewHandsOffApiKeyManagementToWeb() {
+        ui.onNodeWithTag("search").performTextInput("req-74a2")
+        ui.onNodeWithContentDescription("Settings").performClick()
+
+        val handoff = ui.onNodeWithText("Create and manage API keys in Logs on the web.")
+        handoff.assertExists().performScrollTo().assertIsDisplayed().assertHasNoClickAction()
+        ui.onNodeWithText("API keys").assertIsDisplayed().assertHasNoClickAction()
+        ui.onNodeWithText("Create API key").assertDoesNotExist()
+        ui.onNodeWithText("Revoke", substring = true).assertDoesNotExist()
+        ui.onNodeWithContentDescription("Back").performClick()
+        ui.onNodeWithTag("search").assertTextContains("req-74a2")
     }
 }

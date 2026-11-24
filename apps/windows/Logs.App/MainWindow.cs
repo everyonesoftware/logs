@@ -228,9 +228,9 @@ internal sealed class MainWindow : Window
     {
         settingsOpen = !settingsOpen;
         C<StackPanel>("Workspace").Visibility = AsVisibility(!settingsOpen);
-        C<Border>("Settings").Visibility = AsVisibility(settingsOpen);
+        C<StackPanel>("Settings").Visibility = AsVisibility(settingsOpen);
         C<TextBlock>("PageHeading").Text = settingsOpen ? "Settings" : "Investigate";
-        C<TextBlock>("PageCaption").Text = settingsOpen ? "Logs for Windows" : "Search across apps. Check the metric without leaving the results.";
+        C<TextBlock>("PageCaption").Visibility = AsVisibility(!settingsOpen);
         settingsButton.Content = settingsOpen ? "Back" : "Settings";
     }
 

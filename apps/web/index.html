@@ -6,14 +6,15 @@
   <title>Logs — Investigate</title>
   <link rel="stylesheet" href="/styles.css">
   <script src="/app.js" defer></script>
+  <script src="/settings.js" defer></script>
 </head>
 <body>
   <header class="mast">
     <div class="brand"><span class="mark"><svg width="19" height="19" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M2 12h5l3-6 4 12 3-6h5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></span>Logs</div>
-    <div class="mast-actions"><span class="demo">Sample data</span><button id="settings" type="button">Settings</button></div>
+    <div class="mast-actions"><span class="demo" id="mode">Live logs</span><button id="settings" type="button">Settings</button></div>
   </header>
-  <main class="wrap" aria-label="Log investigation">
-    <p id="load" role="status">Loading sample data…</p>
+  <main id="investigation" class="wrap" aria-label="Log investigation">
+    <p id="load" role="status">Loading logs…</p>
     <div id="workspace" hidden>
       <div class="search"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" aria-hidden="true"><circle cx="10.5" cy="10.5" r="6.5" stroke="currentColor" stroke-width="1.8"/><path d="m16 16 4 4" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg><input id="q" type="search" aria-label="Search logs" placeholder="Search messages, sources, or request IDs" autocomplete="off"><kbd>/</kbd></div>
       <div class="toolbar">
@@ -23,6 +24,7 @@
         <select id="range" class="push" aria-label="Time range"><option value="30">Last 30 minutes</option><option value="10">Last 10 minutes</option><option value="60">Last hour</option></select>
       </div>
       <div id="scope" class="scope" hidden><span id="scope-text"></span><button type="button" id="unscope">Clear window</button></div>
+      <p id="log-status" class="small" role="status" hidden></p>
       <div class="work">
         <section class="card logs" aria-labelledby="logs-heading">
           <div class="card-head"><h2 id="logs-heading">Logs <span class="tag" id="count" role="status"></span></h2><span class="small mono">Newest first · UTC</span></div>
@@ -32,7 +34,7 @@
           </div>
         </section>
         <div class="side">
-          <section class="card metric" aria-labelledby="metric-heading">
+          <section class="card metric" aria-labelledby="metric-heading" hidden>
             <div class="card-head"><h2 id="metric-heading">Metric timeline</h2><span class="small" id="metric-app"></span></div>
             <div class="metric-body">
               <div class="metric-top"><div><div class="small" id="metric-label"></div><div id="value" class="value"></div></div><span id="peak-label" class="peak"></span></div>
@@ -49,9 +51,35 @@
       </div>
     </div>
   </main>
-  <dialog id="settings-dialog" aria-labelledby="settings-heading">
-    <div class="card-head"><h2 id="settings-heading">Settings</h2><form method="dialog"><button class="icon-btn" aria-label="Close settings" autofocus>×</button></form></div>
-    <div class="detail-body"><h3 id="current-version">Current Version</h3><button type="button" id="check">Check for updates</button><p id="update-status" role="status"></p></div>
+  <main id="settings-overview" class="wrap settings-overview" aria-labelledby="settings-heading" hidden>
+    <h1 id="settings-heading" tabindex="-1">Settings</h1>
+    <section class="card" aria-labelledby="current-version">
+      <div class="settings-head"><div><h2 id="current-version">Current Version: loading…</h2><p class="small">Served by this Logs instance. No web release channel is configured.</p></div></div>
+    </section>
+    <section class="card" aria-labelledby="keys-heading">
+      <div class="settings-head"><div><h2 id="keys-heading">API keys</h2><p class="small">Let other applications send logs.</p></div><button id="new-key" class="primary" hidden>Create API key</button></div>
+      <div class="settings-body">
+        <p id="keys-status" role="status"></p>
+        <form id="unlock-keys" hidden>
+          <label for="admin-token">Administrator token</label>
+          <div class="settings-controls"><input id="admin-token" type="password" required maxlength="256" autocomplete="off" spellcheck="false"><button type="submit">Unlock</button></div>
+        </form>
+        <ul id="keys-list" aria-label="Sender keys" hidden></ul>
+        <button id="refresh-keys" hidden>Refresh keys</button>
+      </div>
+      <details class="settings-guide"><summary>How to use an API key</summary><p>Give each sender its own key and store it in the sender’s secret store. Send logs over HTTPS to <code>POST /api/logs</code> with <code>Authorization: Bearer &lt;key&gt;</code>. Sender keys do not grant viewer or administrator access.</p></details>
+    </section>
+  </main>
+  <dialog id="key-dialog" aria-labelledby="key-dialog-title">
+    <div class="detail-body">
+      <h2 id="key-dialog-title"></h2><p id="key-dialog-description"></p>
+      <form id="key-action">
+        <div id="key-name-field"><label for="key-name">Application name</label><input id="key-name" maxlength="60" required autocomplete="off" placeholder="e.g. Inventory worker"></div>
+        <div id="key-reveal" hidden><label for="key-secret">Sender API key</label><input id="key-secret" readonly autocomplete="off" spellcheck="false"><button id="copy-key" type="button">Copy key</button></div>
+        <p id="key-feedback" role="status"></p>
+        <div class="settings-controls"><button id="cancel-key" type="button">Cancel</button><button class="primary" id="submit-key" type="submit">Create API key</button></div>
+      </form>
+    </div>
   </dialog>
 </body>
 </html>

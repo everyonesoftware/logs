@@ -1,6 +1,7 @@
 package com.everyonesoftware.signal
 
 import androidx.activity.compose.BackHandler
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -251,10 +252,26 @@ private fun Details(event: LogEvent, onClose: () -> Unit) {
 
 @Composable
 private fun SettingsPage() {
-    Column(Modifier.widthIn(max = 720.dp).fillMaxSize().verticalScroll(rememberScrollState()).padding(16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
-        Caption("LOGS / UPDATES")
-        Text("Current Version: ${BuildConfig.VERSION_NAME}", style = MaterialTheme.typography.titleLarge, modifier = Modifier.semantics { heading() })
-        OutlinedButton(onClick = {}, enabled = false) { Text("Check for updates") }
-        Text("No update feed is configured for this build.", style = MaterialTheme.typography.bodyMedium, color = Muted)
+    Column(Modifier.widthIn(max = 720.dp).fillMaxSize().verticalScroll(rememberScrollState()).padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+        SettingsCard("Current Version: ${BuildConfig.VERSION_NAME}", "No update feed is configured for this build.") {
+            OutlinedButton(onClick = {}, enabled = false) { Text("Check for updates") }
+        }
+        SettingsCard("API keys", "Create and manage API keys in Logs on the web.")
+    }
+}
+
+@Composable
+private fun SettingsCard(title: String, description: String, action: @Composable () -> Unit = {}) {
+    Surface(
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(10.dp),
+        color = Panel,
+        border = BorderStroke(1.dp, Line),
+    ) {
+        Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+            Text(title, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold, modifier = Modifier.semantics { heading() })
+            Text(description, style = MaterialTheme.typography.bodyMedium, color = Muted)
+            action()
+        }
     }
 }

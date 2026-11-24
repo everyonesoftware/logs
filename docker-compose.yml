@@ -3,3 +3,18 @@ services:
     image: ${LOGS_IMAGE:-ghcr.io/everyonesoftware/logs}:${LOGS_VERSION:?set LOGS_VERSION}
     ports:
       - "127.0.0.1:4173:4173"
+    environment:
+      LOGS_INGEST_TOKEN: ${LOGS_INGEST_TOKEN:-}
+      LOGS_ADMIN_TOKEN: ${LOGS_ADMIN_TOKEN:-}
+      LOGS_ALLOWED_HOST: ${LOGS_ALLOWED_HOST:-}
+    volumes:
+      - logs-data:/var/lib/logs
+    networks:
+      - logs-private
+
+volumes:
+  logs-data:
+
+networks:
+  logs-private:
+    driver: bridge

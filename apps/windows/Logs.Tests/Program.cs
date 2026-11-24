@@ -94,6 +94,25 @@ Check("shell-local background is resolved by a child after the runtime dictionar
         e.Attribute("IsHitTestVisible")?.Value == "False"));
 });
 
+Check("settings overview stacks version and read-only web handoff cards", () =>
+{
+    var shell = XDocument.Parse(Read("Shell.xaml"));
+    var xaml = XNamespace.Get("http://schemas.microsoft.com/winfx/2006/xaml");
+    var settings = shell.Descendants().Single(e => e.Attribute(xaml + "Name")?.Value == "Settings");
+    Require(settings.Name.LocalName == "StackPanel" && settings.Attribute("Visibility")?.Value == "Collapsed");
+    var cards = settings.Elements().ToArray();
+    Require(cards.Length == 2 && cards.All(e => e.Name.LocalName == "Border" && e.Attribute("Style")?.Value == "{StaticResource Card}"));
+    Require(cards[0].Descendants().Any(e => e.Attribute(xaml + "Name")?.Value == "VersionLabel"));
+    Require(cards[0].Descendants().Any(e => e.Name.LocalName == "Button" &&
+        e.Attribute("Content")?.Value == "Check for updates" && e.Attribute("IsEnabled")?.Value == "False"));
+    Require(cards[0].Descendants().Any(e => e.Attribute("Text")?.Value == "No Windows update feed is configured for this build."));
+    Require(cards[1].Descendants().Any(e => e.Name.LocalName == "TextBlock" && e.Attribute("Text")?.Value == "API keys" &&
+        e.Attribute("AutomationProperties.HeadingLevel")?.Value == "Level2"));
+    Require(cards[1].Descendants().Any(e => e.Name.LocalName == "TextBlock" &&
+        e.Attribute("Text")?.Value == "Create and manage API keys in Logs on the web." && e.Attribute("TextWrapping")?.Value == "Wrap"));
+    Require(cards[1].Descendants().All(e => e.Name.LocalName is "StackPanel" or "TextBlock"));
+});
+
 static string Read(string name)
 {
     var assembly = typeof(Investigation).Assembly;
